@@ -1,26 +1,26 @@
-from maya import OpenMaya, cmds
-
+import maya.OpenMaya as om
+import maya.cmds as cmds
 meshTransform = 'pSphere1'
 meshShape = cmds.listRelatives(meshTransform, c=True)[0]
 
 meshMatrix = cmds.xform(meshTransform, q=True, ws=True, matrix=True)
-primaryUp = OpenMaya.MVector(*meshMatrix[4:7])
+primaryUp = om.MVector(*meshMatrix[4:7])
 # have a secondary up vector for faces that are facing the same way as the original up
-secondaryUp = OpenMaya.MVector(*meshMatrix[8:11])
+secondaryUp = om.MVector(*meshMatrix[8:11])
 
-sel = OpenMaya.MSelectionList()
+sel = om.MSelectionList()
 sel.add(meshShape)
 
-meshObj = OpenMaya.MObject()
+meshObj = om.MObject()
 sel.getDependNode(0, meshObj)
 
-meshPolyIt = OpenMaya.MItMeshPolygon(meshObj)
+meshPolyIt = om.MItMeshPolygon(meshObj)
 faceNeighbors = []
 faceCoordinates = []
 
 while not meshPolyIt.isDone():
 
-    normal = OpenMaya.MVector()
+    normal = om.MVector()
     meshPolyIt.getNormal(normal)
 
     # use the seconary up if the normal is facing the same direction as the object Y
@@ -28,7 +28,7 @@ while not meshPolyIt.isDone():
 
     center = meshPolyIt.center()
 
-    faceArray = OpenMaya.MIntArray()
+    faceArray = om.MIntArray()
     meshPolyIt.getConnectedFaces(faceArray)
 
     meshPolyIt.next()
@@ -43,8 +43,8 @@ while not meshPolyIt.isDone():
                   normal.x, normal.y, normal.z, 0,
                   center.x, center.y, center.z, 1]
 
-    faceMatrix = OpenMaya.MMatrix()
-    OpenMaya.MScriptUtil.createMatrixFromList(matrixList, faceMatrix)
+    faceMatrix = om.MMatrix()
+    om.MScriptUtil.createMatrixFromList(matrixList, faceMatrix)
 
     faceCoordinates.append(faceMatrix)
 
@@ -60,42 +60,44 @@ def getUpFace(faceIndex):
     poly_ids[2] = poly_ids[2]+1 
     poly_ids[3] = poly_ids[3]+1 
 
-    sel = OpenMaya.MSelectionList()
-    OpenMaya.MGlobal.getActiveSelectionList(sel)
+    sel = om.MSelectionList()
+    om.MGlobal.getActiveSelectionList(sel)
 
-    mdag = OpenMaya.MDagPath()
+    mdag = om.MDagPath()
     sel.getDagPath(0, mdag)
+
+    print  poly_ids[0]
 
     # Create an MIntArray and populate it with component ids to add to our component object
     # MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
     # This is where you would use your list of polyIds that you had gotten
     #poly_ids = [faceIndex]
-    util = OpenMaya.MScriptUtil()
+    util = om.MScriptUtil()
     util.createFromList(poly_ids, len(poly_ids))
     ids_ptr = util.asIntPtr()
-    polyids = OpenMaya.MIntArray(ids_ptr, len(poly_ids))
+    polyids = om.MIntArray(ids_ptr, len(poly_ids))
 
     # Create a singleIndexedComponent of type polygon
-    mfn_components = OpenMaya.MFnSingleIndexedComponent()
-    components = mfn_components.create(OpenMaya.MFn.kMeshPolygonComponent)
+    mfn_components = om.MFnSingleIndexedComponent()
+    components = mfn_components.create(om.MFn.kMeshPolygonComponent)
     # Add our MIntArray of ids to the component
     mfn_components.addElements(polyids)
 
-    to_sel = OpenMaya.MSelectionList()
+    to_sel = om.MSelectionList()
     # The object the selection refers to, and the components on that object to select
     to_sel.add(mdag, components)
-    OpenMaya.MGlobal.setActiveSelectionList(to_sel)
+    om.MGlobal.setActiveSelectionList(to_sel)
 
-    return getDirectionalFace(faceIndex, OpenMaya.MVector(0,1,0))
+    return getDirectionalFace(faceIndex, om.MVector(0,1,0))
 
 def getDownFace(faceIndex):
-    return getDirectionalFace(faceIndex, OpenMaya.MVector(0,-1,0))
+    return getDirectionalFace(faceIndex, om.MVector(0,-1,0))
 
 def getRightFace(faceIndex):
-    return getDirectionalFace(faceIndex, OpenMaya.MVector(1,0,0))
+    return getDirectionalFace(faceIndex, om.MVector(1,0,0))
 
 def getLeftFace(faceIndex):
-    return getDirectionalFace(faceIndex, OpenMaya.MVector(-1,0,0))
+    return getDirectionalFace(faceIndex, om.MVector(-1,0,0))
 
 def getDirectionalFace(faceIndex, axis):
     faceMatrix = faceCoordinates[faceIndex]
@@ -105,7 +107,7 @@ def getDirectionalFace(faceIndex, axis):
 
     for n in faceNeighbors[faceIndex]:
         nMatrix = faceCoordinates[n] * faceMatrix.inverse()
-        nVector = OpenMaya.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
+        nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
         dp = nVector * axis
 
@@ -151,7 +153,21 @@ def ui_setTargetGeometry():
         print "somthing is wrong" 
         return
 
-        
-
     print "targets: " + str(ids)
     return ids
+
+class SelectionItem:
+
+#----------------------------------------------------------------------------------------------------------------------
+    def __init__(self, dagPath, polyIds):
+        self.dagPath = dagPath
+        self.polyIds = polyIds
+
+#----------------------------------------------------------------------------------------------------------------------
+    def __str__(self):
+        endStr = '\n'
+        outStr = ''
+        outStr += 'DagPath = ' + self.dagPath.fullPathName() + endStr
+        for i, elem in enumerate(self.polyIds):
+            outStr += 'polyIds[' + str(i) + '] = ' + str(self.polyIds[i]) + endStr
+        return outStr
