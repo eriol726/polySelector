@@ -1,6 +1,6 @@
 import maya.OpenMaya as om
 import maya.cmds as cmds
-meshTransform = 'pSphere1'
+meshTransform = 'icaOrigo:Object002'
 meshShape = cmds.listRelatives(meshTransform, c=True)[0]
 
 meshMatrix = cmds.xform(meshTransform, q=True, ws=True, matrix=True)
@@ -145,10 +145,10 @@ def ui_setTargetGeometry():
         if compType == om.MFn.kMeshPolygonComponent:
         	# styckar ut en enstaka komponent från alla markerade komponenter
             compListFn = om.MFnSingleIndexedComponent(components)
-            ids = om.MIntArray()
+            targetIds = om.MIntArray()
             # äntligen får vi ut face id:et
-            compListFn.getElements(ids)
-            selItem = SelectionItem(dagPath, ids)
+            compListFn.getElements(targetIds)
+            selItem = SelectionItem(dagPath, targetIds)
             # lägger till den markerade facet/componenten i en lista
             targetGeom.append(selItem)
 
@@ -162,7 +162,7 @@ def ui_setTargetGeometry():
     #for obj in targetGeom :
     print "obj: " + str(targetGeom[0].polyIds[0])
 
-    print "targets: " + str(ids)
+    print "targets: " + str(targetIds)
 
     
 
@@ -196,6 +196,7 @@ def ui_setTargetGeometry():
             #print "index: ", faceIter.index()
             #cfLength = edgeIter.getConnectedFaces(connectedFaces)
             polyData = objPolyData.polygons[i]
+            objPolyData.polygons[i].normalAngel = 5.0
 
             # itererar igenom alla edges
             faceIter.getEdges(polyEdgesIds)
@@ -206,7 +207,7 @@ def ui_setTargetGeometry():
                     cfLength = edgeIter.getConnectedFaces(edgeFaces)
 
                     if cfLength == 2 :
-                    	# bestämmer vilket face utav två index som ska tilldelas med 1.0
+                    	# bestämmer vilket face utav två index som ska tilldelas med normalens vinkel
                         otherFace = edgeFaces[1] if edgeFaces[0] == i else edgeFaces[0]
                         polyData.connectedFaces[otherFace] = 1.0
 
@@ -215,22 +216,22 @@ def ui_setTargetGeometry():
             faceIter.next()
         
 
-    print "Poly: ", len(objPolyData.polygons)
+	print "Poly: ", len(objPolyData.polygons)
 
-    neighborFaces = []
-    for x in range(0, 3):
-	    for key in objPolyData.polygons[ids[x]].connectedFaces:
-	            neighborFaces.append(key)
+	neighborFaces = []
+	selectedFaces = []
+
+	selectedFaces.append(targetIds[0])
+	selectedFaces.append(getDirectionalFace(targetIds[0], om.MVector(1,0,0)))
+
+	for index in range(1,300):
+		if index>3 :
+			selectedFaces.append(getDirectionalFace(selectedFaces[index], om.MVector(0,-1,0)))
+		else:
+			selectedFaces.append(getDirectionalFace(selectedFaces[index], om.MVector(1,0,0)))
 
 
-    print "NeighborFaces: " + str(neighborFaces)
-
-    # for index in ids:
-    # 	objPolyData.polygons[ids[0]]
-
-    # neighbors = 
-
-    return neighborFaces
+	return selectedFaces
 
 #######################################################################################################################
 
@@ -239,6 +240,7 @@ class PolyData:
 #----------------------------------------------------------------------------------------------------------------------
     def __init__(self):
         self.selected = False
+        self.normalAngel = 0.0
         self.connectedFaces = {}
 
 #----------------------------------------------------------------------------------------------------------------------
