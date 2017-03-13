@@ -30,13 +30,16 @@ def printMMatrix(matrix):
 	print 'transformation: ',  outStr
 
 
-meshTransform = 'icaOrigo1:Object002'
+meshTransform = 'icaOrigo:Object002'
 meshShape = cmds.listRelatives(meshTransform, c=True)[0]
 
 #transformations matris, skala och translatering
 meshMatrix = cmds.xform(meshTransform, q=True, ws=True, matrix=True)
 #plockar ut andra kolumnen med 3 componenter, kommer motsvara en vektor som pekar i Y-riktning eftersom vi drar nytta av skalningen som 'alltid' är positiv
 #vi kunde lika gärna gjort en egen vektor (0,1,0) istället för (0,y-skalning,0) 
+
+printMatrix(meshMatrix)
+
 primaryUp = om.MVector(*meshMatrix[4:7])
 #polockar ut andra raden
 # have a secondary up vector for faces that are facing the same way as the original up
@@ -65,7 +68,7 @@ while not meshPolyIt.isDone():
 	meshPolyIt.getNormal(normal)
 
 	position = om.MPointArray()
-	vtxPointZero = meshPolyIt.point(0)
+	vtxPointZero = meshPolyIt.center()
 
 	#print "normal: ",  position[0].x , " " , position(0) , " " , position(0) 
 	# print "primaryUp: ",  primaryUp.x , " " , primaryUp.y , " " , primaryUp.z
@@ -163,8 +166,8 @@ def getLeftFace(faceIndex):
 	return getDirectionalFace(faceIndex, om.MVector(-1,0,0))
 
 # faceIndex är en target face (som är markerad sen innan)
-def getDirectionalFace(startIndex, axis, endIndex):
-	startFaceMatrix = faceCoordinates[startIndex]
+def getDirectionalFace(selectedFaces, axis, endIndex):
+	startFaceMatrix = faceCoordinates[selectedFaces]
 	endFaceMatrix = faceCoordinates[endIndex]
 	#print "endIndex", endIndex
 	nMatrix = faceCoordinates[endIndex] * startFaceMatrix.inverse()
@@ -177,36 +180,62 @@ def getDirectionalFace(startIndex, axis, endIndex):
 
 	#print "printMatrix: ", printMatrix(endFaceMatrix.inverse())
 
-	endDp = nVector * axis
+	#endDp = nVector * axis
 	#print "endDp", endDp
 
 	#print "nVector", nVector.x, " ", nVector.y ," ", nVector.z
-
+	closestVtx = -1
 	closestDotProd = -1.0
 	nextFace = -1
 
+	goalVtx= polyPosition[endIndex].axis
+
+
+	selectedFaceNeighbors = faceNeighbors[selectedFaces]
+
 	# multiplicerar granne-polygon-matriserna med det valda polygonet faceIndex
-	for n in faceNeighbors[startIndex]:
+	i=0
+	for n in faceNeighbors[selectedFaces]:
+		
 		#print "normal: ",  normals[n].x, ' ', normals[n].y, ' ', normals[n].z 
 		nMatrix = faceCoordinates[n] * startFaceMatrix.inverse()
 		nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
-		# print "nVector: ", nVector.x, " ", nVector.y, " ", nVector.z 
 
-		dp = nVector * axis
 
-		#print "current: ", dp, " n: ", n
+		if len(selectedFaceNeighbors) == 3:
+			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
+			distance2 = abs(goalVtx-polyPosition[selectedFaceNeighbors[1]].z)
+			distance3 = abs(goalVtx-polyPosition[selectedFaceNeighbors[2]].z)
+
+		elif len(selectedFaceNeighbors) == 2:
+			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
+			distance2 = abs(goalVtx-polyPosition[selectedFaceNeighbors[1]].z)
+			# något som är större än distance1 och distance2
+			distance3 = distance1+distance2
+		elif len(selectedFaceNeighbors) == 1:
+			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
+			# något som är större än distance1
+			distance2 = distance1+distance1
+			distance3 = distance1+distance1
+
+		#dp = nVector * axis
+
 
 		#print "n: ", n
 		#print "FaceId: ",faceIndex,  "dp: ", dp
 
 
 		#if abs(normals[n].x) < 0.4 and abs(normals[n].z) < 0.4 and dp> closestDotProd:
-		if dp> closestDotProd:
-			#print "FaceId: ",faceIndex,  "dp: ", dp
-			closestDotProd = dp
-			nextFace = n
-		#print " nextFace: ", nextFace
+		if distance1<distance2 and distance1<distance3:
+			#closestDotProd = dp
+			nextFace = selectedFaceNeighbors[0]
+		elif distance3<distance1 and distance3<distance2:
+		 	nextFace = selectedFaceNeighbors[2]
+		elif distance2<distance3 and distance2<distance1:
+		 	nextFace = selectedFaceNeighbors[1]
+		i+=1
+	print " nextFace: ", nextFace
 	return nextFace
 
 def ui_setTargetGeometry():
@@ -321,10 +350,8 @@ def ui_setTargetGeometry():
 
 
 
-	#lägger till det först markeade facet
-	selectedFaces.append(targetIds[1])
+	
 
-	print "targetIds[0]", targetIds[0], " ", targetIds[1], " ", targetIds[2]
 
 	#markerar nästa, med första facet som utgångspunkt
 
@@ -335,28 +362,53 @@ def ui_setTargetGeometry():
 	# selectedFaces.append(getDirectionalFace(selectedFaces[4], om.MVector(1,0,0)))
 	# selectedFaces.append(getDirectionalFace(selectedFaces[5], om.MVector(1,0,0)))
 	# selectedFaces.append(getDirectionalFace(selectedFaces[6], om.MVector(1,0,0)))
-	printMMatrix(faceCoordinates[targetIds[0]])
-	printMMatrix(faceCoordinates[targetIds[1]])
-	printMMatrix(faceCoordinates[targetIds[2]])
-
-	if polyPosition[targetIds[0]].x < polyPosition[targetIds[0]].x
-
-	#print "size: ", polyPosition.length()
-	print "index: ",targetIds[0], " position: ", polyPosition[targetIds[0]].x
-	print "index: ",targetIds[1], "position: ", polyPosition[targetIds[1]].x
-	print "index: ",targetIds[2], "position: ", polyPosition[targetIds[2]].x
-	#print "point: ", polyPosition[0].x, " ", polyPosition[0].y, " ", polyPosition[0].z
+	#printMMatrix(faceCoordinates[targetIds[0]])
+	#printMMatrix(faceCoordinates[targetIds[1]])
 	
 
-	for index in range(0,8):
+	# if polyPosition[targetIds[0]].z > polyPosition[targetIds[1]].z:
+	# 	startIndex_z = targetIds[0]
+	# 	endIndex_z = targetIds[1]
+	# else:
+	# 	startIndex_z = targetIds[1]
+	# 	endIndex_z = targetIds[0]
 
-		if getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), targetIds[0]) == targetIds[0]:
+	if polyPosition[targetIds[0]].x > polyPosition[targetIds[1]].x:
+		startIndex_x = targetIds[0]
+		endIndex_x = targetIds[1]
+	else:
+		startIndex_x = targetIds[1]
+		endIndex_x = targetIds[0]
+		
+
+
+	#lägger till det först markeade facet
+	# selectedFaces.append(startIndex_z)
+
+	# # z-sträclkan
+	# index = 0
+	# while getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z) != endIndex_z:
+
+	# 	if getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z) == endIndex_z:
+	# 		print "hi"
+	# 		break
+	# 	else:
+	# 		selectedFaces.append(getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z))
+	# 	index += 1
+		
+	selectedFaces.append(startIndex_x)
+	axis = 'x'
+	index = 0
+	for index in range(0,20):
+
+		if getDirectionalFace(selectedFaces[index], axis, endIndex_x) == endIndex_x:
 			print "hi"
 			break
 		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), targetIds[0]))
+			selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, endIndex_x))
+		index += 1
 		
-	selectedFaces.append(targetIds[0])
+	selectedFaces.append(endIndex_x)
 
 
 	return selectedFaces
