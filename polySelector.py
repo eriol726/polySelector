@@ -444,13 +444,10 @@ def ui_setTargetGeometry():
 	print "negativ z-sträcka"
 	axis = 'z'
 	index = 0
-	while getDirectionalFace(selectedFaces[index], axis, secondIndex) != secondIndex:
-
-		if getDirectionalFace(selectedFaces[index], axis, secondIndex) == secondIndex:
-			print "hi"
-			break
-		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, secondIndex))
+	currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex)
+	while  currentIndex != secondIndex:
+		selectedFaces.append(currentIndex)
+		currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex)
 		index += 1
 	
 	print "negativ x-sträcka"
@@ -458,13 +455,10 @@ def ui_setTargetGeometry():
 	axis = 'x'
 
 	index += 1
-	while getDirectionalFace(selectedFaces[index], axis, thirdIndex) != thirdIndex:
-
-		if getDirectionalFace(selectedFaces[index], axis, thirdIndex) == thirdIndex:
-			print "hi"
-			break
-		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, thirdIndex))
+	currentIndex = getDirectionalFace(thirdIndex[index], axis, thirdIndex)
+	while  currentIndex != secondIndex:
+		selectedFaces.append(currentIndex)
+		currentIndex = getDirectionalFace(thirdIndex[index], axis, thirdIndex)
 		index += 1
 	
 	print "positiv z-sträcka"
