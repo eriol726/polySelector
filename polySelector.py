@@ -1,5 +1,6 @@
 import maya.OpenMaya as om
 import maya.cmds as cmds
+from operator import itemgetter, attrgetter, methodcaller
 
 def printMatrix(matrix):
 	endStr = '\n'
@@ -60,6 +61,8 @@ faceNeighbors = []
 faceCoordinates = []
 normals = []
 polyPosition = []
+selectedFacesList = []
+lastIndex = -1
 
 
 while not meshPolyIt.isDone():
@@ -173,6 +176,18 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 	nMatrix = faceCoordinates[endIndex] * startFaceMatrix.inverse()
 	nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
+	sign = "positive"
+	if axis.z > 0:
+		axis = 'z'
+	elif axis.z < 0:
+		axis = 'z'
+		sign = "negative"
+	elif axis.x > 0:
+		axis = 'x'
+	elif axis.x < 0:
+		axis = 'x'
+		sign = "negative"
+
 
 	#printMMatrix(startFaceMatrix)
 	#printMatrix(startFaceMatrix)
@@ -187,46 +202,67 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 	closestVtx = -1
 	closestDotProd = -1.0
 	nextFace = -1
-
-	goalVtx= polyPosition[endIndex].axis
-
+	selectedFacesList.append(selectedFaces)
+	goalVtx= getattr(polyPosition[endIndex], str(axis))
 
 	selectedFaceNeighbors = faceNeighbors[selectedFaces]
 
+
+
+
 	# multiplicerar granne-polygon-matriserna med det valda polygonet faceIndex
 	i=0
-	for n in faceNeighbors[selectedFaces]:
+	#for n in faceNeighbors[selectedFaces]:
 		
 		#print "normal: ",  normals[n].x, ' ', normals[n].y, ' ', normals[n].z 
-		nMatrix = faceCoordinates[n] * startFaceMatrix.inverse()
-		nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
+	#	nMatrix = faceCoordinates[n] * startFaceMatrix.inverse()
+	#	nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
 
-
+	if sign == "positive":
 		if len(selectedFaceNeighbors) == 3:
-			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
-			distance2 = abs(goalVtx-polyPosition[selectedFaceNeighbors[1]].z)
-			distance3 = abs(goalVtx-polyPosition[selectedFaceNeighbors[2]].z)
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
+			distance2 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[1]],str(axis)))
+			distance3 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[2]],str(axis)))
 
 		elif len(selectedFaceNeighbors) == 2:
-			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
-			distance2 = abs(goalVtx-polyPosition[selectedFaceNeighbors[1]].z)
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
+			distance2 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[1]],str(axis)))
 			# något som är större än distance1 och distance2
 			distance3 = distance1+distance2
 		elif len(selectedFaceNeighbors) == 1:
-			distance1 = abs(goalVtx-polyPosition[selectedFaceNeighbors[0]].z)
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
+			# något som är större än distance1
+			distance2 = distance1+distance1
+			distance3 = distance1+distance1
+	elif sign == "negative":
+		if len(selectedFaceNeighbors) == 3:
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
+			distance2 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[1]],str(axis)))
+			distance3 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[2]],str(axis)))
+
+		elif len(selectedFaceNeighbors) == 2:
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
+			distance2 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[1]],str(axis)))
+			# något som är större än distance1 och distance2
+			distance3 = distance1+distance2
+
+		elif len(selectedFaceNeighbors) == 1:
+			distance1 = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
 			# något som är större än distance1
 			distance2 = distance1+distance1
 			distance3 = distance1+distance1
 
 		#dp = nVector * axis
 
+	
 
 		#print "n: ", n
 		#print "FaceId: ",faceIndex,  "dp: ", dp
 
 
-		#if abs(normals[n].x) < 0.4 and abs(normals[n].z) < 0.4 and dp> closestDotProd:
+	#if abs(normals[n].x) < 0.4 and abs(normals[n].z) < 0.4 and dp> closestDotProd:
+	if sign == "positive":
 		if distance1<distance2 and distance1<distance3:
 			#closestDotProd = dp
 			nextFace = selectedFaceNeighbors[0]
@@ -234,8 +270,24 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 		 	nextFace = selectedFaceNeighbors[2]
 		elif distance2<distance3 and distance2<distance1:
 		 	nextFace = selectedFaceNeighbors[1]
-		i+=1
-	print " nextFace: ", nextFace
+	elif sign == "negative":
+		if distance1<distance2 and distance1<distance3:
+			#closestDotProd = dp
+			nextFace = selectedFaceNeighbors[0]
+			for n in selectedFacesList:
+				if n == nextFace:
+					nextFace = selectedFaceNeighbors[2]
+		elif distance3<distance1 and distance3<distance2:
+		 	nextFace = selectedFaceNeighbors[2]
+		elif distance2<distance3 and distance2<distance1:
+			nextFace = selectedFaceNeighbors[1]
+			#print "lastIndex", lastIndex
+			for n in selectedFacesList:
+				if n == nextFace:
+					nextFace = selectedFaceNeighbors[0]
+		 	
+	lastIndex = nextFace
+	print "nextFace", nextFace
 	return nextFace
 
 def ui_setTargetGeometry():
@@ -364,51 +416,81 @@ def ui_setTargetGeometry():
 	# selectedFaces.append(getDirectionalFace(selectedFaces[6], om.MVector(1,0,0)))
 	#printMMatrix(faceCoordinates[targetIds[0]])
 	#printMMatrix(faceCoordinates[targetIds[1]])
+
+	poly_selectedList=[{'id':targetIds[0], 'x':polyPosition[targetIds[0]].x, 'z':polyPosition[targetIds[0]].z },
+					   {'id':targetIds[1], 'x':polyPosition[targetIds[1]].x, 'z':polyPosition[targetIds[1]].z },
+					   {'id':targetIds[2], 'x':polyPosition[targetIds[2]].x, 'z':polyPosition[targetIds[2]].z },
+					   {'id':targetIds[3], 'x':polyPosition[targetIds[3]].x, 'z':polyPosition[targetIds[3]].z }]
+
+
 	
 
-	# if polyPosition[targetIds[0]].z > polyPosition[targetIds[1]].z:
-	# 	startIndex_z = targetIds[0]
-	# 	endIndex_z = targetIds[1]
-	# else:
-	# 	startIndex_z = targetIds[1]
-	# 	endIndex_z = targetIds[0]
+	
+	#sorted(poly_selectedList, key=lambda k: k['x'])
+	sortedPolygons_x = sorted(poly_selectedList, key=itemgetter('x')) 
+	sortedPolygons_z = sorted(sortedPolygons_x, key=itemgetter('z'))
 
-	if polyPosition[targetIds[0]].x > polyPosition[targetIds[1]].x:
-		startIndex_x = targetIds[0]
-		endIndex_x = targetIds[1]
-	else:
-		startIndex_x = targetIds[1]
-		endIndex_x = targetIds[0]
-		
+	print("selectedPolyList: ", sortedPolygons_z[0]["id"])
+	print("selectedPolyList: ", sortedPolygons_z[1]["id"])
+	print("selectedPolyList: ", sortedPolygons_z[2]["id"])
+	print("selectedPolyList: ", sortedPolygons_z[3]["id"])
 
+	sortedPolygons = []
+	sortedPolygons.append(sortedPolygons_z[2]["id"])
+	sortedPolygons.append(sortedPolygons_z[0]["id"])
+	sortedPolygons.append(sortedPolygons_z[1]["id"])
+	sortedPolygons.append(sortedPolygons_z[3]["id"])
+	print("selectedPolyList: ", sortedPolygons[0])
+	print("selectedPolyList: ", sortedPolygons[1])
+	print("selectedPolyList: ", sortedPolygons[2])
+	print("selectedPolyList: ", sortedPolygons[3])
+
+	startIndex = sortedPolygons_z[2]["id"]
+	secondIndex = sortedPolygons_z[0]["id"]
+	thirdIndex = sortedPolygons_z[1]["id"]
+	endIndex = sortedPolygons_z[3]["id"]
 
 	#lägger till det först markeade facet
-	# selectedFaces.append(startIndex_z)
+	# selectedFaces.append(startIndex)
 
 	# # z-sträclkan
+	# axis = 'z'
 	# index = 0
-	# while getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z) != endIndex_z:
+	# while getDirectionalFace(selectedFaces[index], axis, secondIndex) != secondIndex:
 
-	# 	if getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z) == endIndex_z:
+	# 	if getDirectionalFace(selectedFaces[index], axis, secondIndex) == secondIndex:
 	# 		print "hi"
 	# 		break
 	# 	else:
-	# 		selectedFaces.append(getDirectionalFace(selectedFaces[index], om.MVector(1,0,0), endIndex_z))
+	# 		selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, secondIndex))
 	# 	index += 1
 		
-	selectedFaces.append(startIndex_x)
-	axis = 'x'
-	index = 0
-	for index in range(0,20):
+	# selectedFaces.append(secondIndex)
+	# axis = 'x'
 
-		if getDirectionalFace(selectedFaces[index], axis, endIndex_x) == endIndex_x:
+	# index += 1
+	# while getDirectionalFace(selectedFaces[index], axis, thirdIndex) != thirdIndex:
+
+	# 	if getDirectionalFace(selectedFaces[index], axis, thirdIndex) == thirdIndex:
+	# 		print "hi"
+	# 		break
+	# 	else:
+	# 		selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, thirdIndex))
+	# 	index += 1
+		
+	selectedFaces.append(thirdIndex)
+	axis = 'z'
+
+	index = 0
+	while getDirectionalFace(selectedFaces[index], om.MVector(0,0,-1), endIndex) != endIndex:
+		if getDirectionalFace(selectedFaces[index], om.MVector(0,0,-1), endIndex) == endIndex:
 			print "hi"
 			break
 		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index], axis, endIndex_x))
+			selectedFaces.append(getDirectionalFace(selectedFaces[index],  om.MVector(0,0,-1), endIndex))
 		index += 1
 		
-	selectedFaces.append(endIndex_x)
+	selectedFaces.append(endIndex)
 
 
 	return selectedFaces
