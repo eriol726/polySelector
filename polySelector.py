@@ -239,17 +239,40 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 	if distance1<distance2 and distance1<distance3:
 		#closestDotProd = dp
 		nextFace = selectedFaceNeighbors[0]
-		for n in selectedFacesList:
-			if n == nextFace and axis != 'x':
-				nextFace = selectedFaceNeighbors[2]
+		# for n in selectedFacesList:
+		# 	if n == nextFace and axis != 'x':
+		# 		nextFace = selectedFaceNeighbors[2]
 	elif distance3<distance1 and distance3<distance2:
 	 	nextFace = selectedFaceNeighbors[2]
 	elif distance2<distance3 and distance2<distance1:
 		nextFace = selectedFaceNeighbors[1]
-		#print "lastIndex", lastIndex
-		for n in selectedFacesList:
-			if n == nextFace:
+		# #print "lastIndex", lastIndex
+		# for n in selectedFacesList:
+		# 	if n == nextFace:
+		# 		nextFace = selectedFaceNeighbors[0]
+
+	for n in selectedFacesList:
+		if(numberOfNeighbors == 2):
+			if n == selectedFaceNeighbors[0]:
+				nextFace = selectedFaceNeighbors[1]
+			elif  n == selectedFaceNeighbors[1] and numberOfNeighbors == 2:
 				nextFace = selectedFaceNeighbors[0]
+
+		elif(numberOfNeighbors == 3):
+			if n == selectedFaceNeighbors[0] and distance2<distance3:
+				nextFace = selectedFaceNeighbors[1]
+			elif n == selectedFaceNeighbors[0] and distance2>distance3:
+				nextFace = selectedFaceNeighbors[2]
+
+			elif n == selectedFaceNeighbors[1] and distance1<distance3:
+				nextFace = selectedFaceNeighbors[0]
+			elif n == selectedFaceNeighbors[1] and distance1>distance3:
+				nextFace = selectedFaceNeighbors[2]
+
+			elif n == selectedFaceNeighbors[2] and distance1<distance2:
+				nextFace = selectedFaceNeighbors[0]
+			elif n == selectedFaceNeighbors[2] and distance1>distance2:
+				nextFace = selectedFaceNeighbors[1]
 		 	
 	lastIndex = nextFace
 	#print "nextFace", nextFace
@@ -413,7 +436,7 @@ def ui_setTargetGeometry():
 	startIndex = sortedPolygons_z[2]["id"]
 	secondIndex = sortedPolygons_z[0]["id"]
 	thirdIndex = sortedPolygons_z[1]["id"]
-	endIndex = sortedPolygons_z[3]["id"]
+	fourthIndex = sortedPolygons_z[3]["id"]
 
 	#lägger till det först markeade facet
 	selectedFaces.append(startIndex)
@@ -448,15 +471,27 @@ def ui_setTargetGeometry():
 	selectedFaces.append(thirdIndex)
 	axis = 'z'
 	index += 1
-	while getDirectionalFace(selectedFaces[index], axis, endIndex) != endIndex:
-		if getDirectionalFace(selectedFaces[index], axis, endIndex) == endIndex:
+	while getDirectionalFace(selectedFaces[index], axis, fourthIndex) != fourthIndex:
+		if getDirectionalFace(selectedFaces[index], axis, fourthIndex) == fourthIndex:
 			print "hi"
 			break
 		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index],  axis, endIndex))
+			selectedFaces.append(getDirectionalFace(selectedFaces[index],  axis, fourthIndex))
+		index += 1
+
+	print "positiv x-sträcka"
+	selectedFaces.append(fourthIndex)
+
+	axis = 'x'
+	index += 1
+	while getDirectionalFace(selectedFaces[index], axis, fourthIndex) != fourthIndex:
+		if getDirectionalFace(selectedFaces[index], axis, startIndex) == startIndex:
+			print "hi"
+			break
+		else:
+			selectedFaces.append(getDirectionalFace(selectedFaces[index],  axis, startIndex))
 		index += 1
 		
-	selectedFaces.append(endIndex)
 
 
 	return selectedFaces
