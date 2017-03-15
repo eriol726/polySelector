@@ -349,32 +349,29 @@ def ui_setTargetGeometry():
 
 
 	
+	print("index: ", poly_selectedList[0]["id"],"x: ", poly_selectedList[0]["x"], " " , "z: ", poly_selectedList[0]["z"])
+	print("index: ", poly_selectedList[1]["id"],"x: ", poly_selectedList[1]["x"], " " , "z: ", poly_selectedList[1]["z"])
+	print("index: ", poly_selectedList[2]["id"],"x: ", poly_selectedList[2]["x"], " " , "z: ", poly_selectedList[2]["z"])
+	print("index: ", poly_selectedList[3]["id"],"x: ", poly_selectedList[3]["x"], " " , "z: ", poly_selectedList[3]["z"])
 
+	print " "
 	
 	#sorted(poly_selectedList, key=lambda k: k['x'])
-	sortedPolygons_x = sorted(poly_selectedList, key=itemgetter('x')) 
-	sortedPolygons_z = sorted(sortedPolygons_x, key=itemgetter('z'))
 
-	print("selectedPolyList: ", sortedPolygons_z[0]["id"])
-	print("selectedPolyList: ", sortedPolygons_z[1]["id"])
-	print("selectedPolyList: ", sortedPolygons_z[2]["id"])
-	print("selectedPolyList: ", sortedPolygons_z[3]["id"])
+	poly_selectedList.sort(key=lambda x: (-x['x'],x['z']))
 
-	sortedPolygons = []
-	sortedPolygons.append(sortedPolygons_z[2]["id"])
-	sortedPolygons.append(sortedPolygons_z[0]["id"])
-	sortedPolygons.append(sortedPolygons_z[1]["id"])
-	sortedPolygons.append(sortedPolygons_z[3]["id"])
 
-	print("selectedPolyList: ", sortedPolygons[0])
-	print("selectedPolyList: ", sortedPolygons[1])
-	print("selectedPolyList: ", sortedPolygons[2])
-	print("selectedPolyList: ", sortedPolygons[3])
+	print("index: ", poly_selectedList[0]["id"],"x: ", poly_selectedList[0]["x"], " " , "z: ", poly_selectedList[0]["z"])
+	print("index: ", poly_selectedList[1]["id"],"x: ", poly_selectedList[1]["x"], " " , "z: ", poly_selectedList[1]["z"])
+	print("index: ", poly_selectedList[2]["id"],"x: ", poly_selectedList[2]["x"], " " , "z: ", poly_selectedList[2]["z"])
+	print("index: ", poly_selectedList[3]["id"],"x: ", poly_selectedList[3]["x"], " " , "z: ", poly_selectedList[3]["z"])
 
-	startIndex = sortedPolygons_z[2]["id"]
-	secondIndex = sortedPolygons_z[0]["id"]
-	thirdIndex = sortedPolygons_z[1]["id"]
-	fourthIndex = sortedPolygons_z[3]["id"]
+
+
+	startIndex = poly_selectedList[0]["id"]
+	secondIndex = poly_selectedList[1]["id"]
+	thirdIndex = poly_selectedList[2]["id"]
+	fourthIndex = poly_selectedList[3]["id"]
 
 	#lägger till det först markeade facet
 	selectedFaces.append(startIndex)
@@ -382,47 +379,48 @@ def ui_setTargetGeometry():
 	print "negativ z-sträcka"
 	axis = 'z'
 	index = 0
-	lastIndex = -1
+
 	currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
-	while  currentIndex != secondIndex:
+	while currentIndex != secondIndex:
 		selectedFaces.append(currentIndex)
 		index += 1
 		currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
 		
-	
-	print "negativ x-sträcka"
-	selectedFaces.append(secondIndex)
-	axis = 'x'
-	index += 1
-	currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
-	while  currentIndex != thirdIndex:
-		selectedFaces.append(currentIndex)
-		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
 		
 	
-	print "positiv z-sträcka"
-	selectedFaces.append(thirdIndex)
-	axis = 'z'
-	index += 1
-	currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, -1)
-	while currentIndex != fourthIndex:
-		if currentIndex == fourthIndex:
-			print "hi" 
-		selectedFaces.append(currentIndex)
-		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+	# print "negativ x-sträcka"
+	# selectedFaces.append(secondIndex)
+	# axis = 'x'
+	# index += 1
+	# currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+	# while  currentIndex != thirdIndex:
+	# 	selectedFaces.append(currentIndex)
+	# 	index += 1
+	# 	currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		
+	
+	# print "positiv z-sträcka"
+	# selectedFaces.append(thirdIndex)
+	# axis = 'z'
+	# index += 1
+	# currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+	# while currentIndex != fourthIndex:
+	# 	if currentIndex == fourthIndex:
+	# 		print "hi" 
+	# 	selectedFaces.append(currentIndex)
+	# 	index += 1
+	# 	currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 		
 
-	print "positiv x-sträcka"
-	selectedFaces.append(fourthIndex)
-	axis = 'x'
-	index += 1
-	currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
-	while  currentIndex != startIndex:
-		selectedFaces.append(currentIndex)
-		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+	# print "positiv x-sträcka"
+	# selectedFaces.append(fourthIndex)
+	# axis = 'x'
+	# index += 1
+	# currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+	# while  currentIndex != startIndex:
+	# 	selectedFaces.append(currentIndex)
+	# 	index += 1
+	# 	currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 
 	return selectedFaces
 
