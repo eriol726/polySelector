@@ -168,28 +168,14 @@ def getRightFace(faceIndex):
 def getLeftFace(faceIndex):
 	return getDirectionalFace(faceIndex, om.MVector(-1,0,0))
 
-# faceIndex är en target face (som är markerad sen innan)
-def getDirectionalFace(selectedFaces, axis, endIndex):
+# selectedFaces är en target face (som är markerad sen innan)
+def getDirectionalFace(selectedFaces, axis, endIndex, lastIndex):
 	startFaceMatrix = faceCoordinates[selectedFaces]
 	endFaceMatrix = faceCoordinates[endIndex]
-	#print "endIndex", endIndex
+
 	nMatrix = faceCoordinates[endIndex] * startFaceMatrix.inverse()
 	nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
-
-
-	#printMMatrix(startFaceMatrix)
-	#printMatrix(startFaceMatrix)
-	#printMatrix(endFaceMatrix)
-
-	#print "printMatrix: ", printMatrix(endFaceMatrix.inverse())
-
-	#endDp = nVector * axis
-	#print "endDp", endDp
-
-	#print "nVector", nVector.x, " ", nVector.y ," ", nVector.z
-	closestVtx = -1
-	closestDotProd = -1.0
 	nextFace = -1
 	selectedFacesList.append(selectedFaces)
 	goalVtx= getattr(polyPosition[endIndex], str(axis))
@@ -197,17 +183,6 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 	selectedFaceNeighbors = faceNeighbors[selectedFaces]
 
 	numberOfNeighbors = len(selectedFaceNeighbors)
-
-
-
-
-	# multiplicerar granne-polygon-matriserna med det valda polygonet faceIndex
-	i=0
-	#for n in faceNeighbors[selectedFaces]:
-		
-		#print "normal: ",  normals[n].x, ' ', normals[n].y, ' ', normals[n].z 
-	#	nMatrix = faceCoordinates[n] * startFaceMatrix.inverse()
-	#	nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
 
 
 	if numberOfNeighbors == 3:
@@ -227,55 +202,38 @@ def getDirectionalFace(selectedFaces, axis, endIndex):
 		distance2 = distance1+distance1
 		distance3 = distance1+distance1
 
-		#dp = nVector * axis
-
-	
-
-		#print "n: ", n
-		#print "FaceId: ",faceIndex,  "dp: ", dp
 
 
-	#if abs(normals[n].x) < 0.4 and abs(normals[n].z) < 0.4 and dp> closestDotProd:
 	if distance1<distance2 and distance1<distance3:
-		#closestDotProd = dp
 		nextFace = selectedFaceNeighbors[0]
-		# for n in selectedFacesList:
-		# 	if n == nextFace and axis != 'x':
-		# 		nextFace = selectedFaceNeighbors[2]
 	elif distance3<distance1 and distance3<distance2:
 	 	nextFace = selectedFaceNeighbors[2]
 	elif distance2<distance3 and distance2<distance1:
 		nextFace = selectedFaceNeighbors[1]
-		# #print "lastIndex", lastIndex
-		# for n in selectedFacesList:
-		# 	if n == nextFace:
-		# 		nextFace = selectedFaceNeighbors[0]
 
-	for n in selectedFacesList:
-		if(numberOfNeighbors == 2):
-			if n == selectedFaceNeighbors[0]:
-				nextFace = selectedFaceNeighbors[1]
-			elif  n == selectedFaceNeighbors[1] and numberOfNeighbors == 2:
-				nextFace = selectedFaceNeighbors[0]
+	# om nextFace redan redan är markerat, välj en annan granne
+	if(numberOfNeighbors == 2):
+		if lastIndex == selectedFaceNeighbors[0]:
+			nextFace = selectedFaceNeighbors[1]
+		elif  lastIndex == selectedFaceNeighbors[1] and numberOfNeighbors == 2:
+			nextFace = selectedFaceNeighbors[0]
 
-		elif(numberOfNeighbors == 3):
-			if n == selectedFaceNeighbors[0] and distance2<distance3:
-				nextFace = selectedFaceNeighbors[1]
-			elif n == selectedFaceNeighbors[0] and distance2>distance3:
-				nextFace = selectedFaceNeighbors[2]
+	elif(numberOfNeighbors == 3):
+		if lastIndex == selectedFaceNeighbors[0] and distance2<distance3:
+			nextFace = selectedFaceNeighbors[1]
+		elif lastIndex == selectedFaceNeighbors[0] and distance2>distance3:
+			nextFace = selectedFaceNeighbors[2]
+		elif lastIndex == selectedFaceNeighbors[1] and distance1<distance3:
+			nextFace = selectedFaceNeighbors[0]
+		elif lastIndex == selectedFaceNeighbors[1] and distance1>distance3:
+			nextFace = selectedFaceNeighbors[2]
+		elif lastIndex == selectedFaceNeighbors[2] and distance1<distance2:
+			nextFace = selectedFaceNeighbors[0]
+		elif lastIndex == selectedFaceNeighbors[2] and distance1>distance2:
+			nextFace = selectedFaceNeighbors[1]
 
-			elif n == selectedFaceNeighbors[1] and distance1<distance3:
-				nextFace = selectedFaceNeighbors[0]
-			elif n == selectedFaceNeighbors[1] and distance1>distance3:
-				nextFace = selectedFaceNeighbors[2]
-
-			elif n == selectedFaceNeighbors[2] and distance1<distance2:
-				nextFace = selectedFaceNeighbors[0]
-			elif n == selectedFaceNeighbors[2] and distance1>distance2:
-				nextFace = selectedFaceNeighbors[1]
 		 	
-	lastIndex = nextFace
-	#print "nextFace", nextFace
+	print "nextFace", nextFace
 	return nextFace
 
 def ui_setTargetGeometry():
@@ -327,13 +285,6 @@ def ui_setTargetGeometry():
 		print "somthing is wrong" 
 		return
 
-
-	#for obj in targetGeom :
-	#print "obj: " + str(targetGeom[0].polyIds[0])
-
-	#print "targets: " + str(targetIds)
-
-	
 
 	connectedFaces = om.MIntArray()
 	faceIndecis = om.MIntArray()
@@ -390,20 +341,6 @@ def ui_setTargetGeometry():
 
 
 
-	
-
-
-	#markerar nästa, med första facet som utgångspunkt
-
-	#selectedFaces.append(getDirectionalFace(selectedFaces[0], om.MVector(1,0,0)))
-	#selectedFaces.append(getDirectionalFace(selectedFaces[1], om.MVector(1,0,0)))
-	# selectedFaces.append(getDirectionalFace(selectedFaces[2], om.MVector(1,0,0)))
-	# selectedFaces.append(getDirectionalFace(selectedFaces[3], om.MVector(1,0,0)))
-	# selectedFaces.append(getDirectionalFace(selectedFaces[4], om.MVector(1,0,0)))
-	# selectedFaces.append(getDirectionalFace(selectedFaces[5], om.MVector(1,0,0)))
-	# selectedFaces.append(getDirectionalFace(selectedFaces[6], om.MVector(1,0,0)))
-	#printMMatrix(faceCoordinates[targetIds[0]])
-	#printMMatrix(faceCoordinates[targetIds[1]])
 
 	poly_selectedList=[{'id':targetIds[0], 'x':polyPosition[targetIds[0]].x, 'z':polyPosition[targetIds[0]].z },
 					   {'id':targetIds[1], 'x':polyPosition[targetIds[1]].x, 'z':polyPosition[targetIds[1]].z },
@@ -428,6 +365,7 @@ def ui_setTargetGeometry():
 	sortedPolygons.append(sortedPolygons_z[0]["id"])
 	sortedPolygons.append(sortedPolygons_z[1]["id"])
 	sortedPolygons.append(sortedPolygons_z[3]["id"])
+
 	print("selectedPolyList: ", sortedPolygons[0])
 	print("selectedPolyList: ", sortedPolygons[1])
 	print("selectedPolyList: ", sortedPolygons[2])
@@ -444,49 +382,47 @@ def ui_setTargetGeometry():
 	print "negativ z-sträcka"
 	axis = 'z'
 	index = 0
-	currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex)
+	lastIndex = -1
+	currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
 	while  currentIndex != secondIndex:
 		selectedFaces.append(currentIndex)
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex)
 		index += 1
+		currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
+		
 	
 	print "negativ x-sträcka"
 	selectedFaces.append(secondIndex)
 	axis = 'x'
-
 	index += 1
-	currentIndex = getDirectionalFace(thirdIndex[index], axis, thirdIndex)
-	while  currentIndex != secondIndex:
+	currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+	while  currentIndex != thirdIndex:
 		selectedFaces.append(currentIndex)
-		currentIndex = getDirectionalFace(thirdIndex[index], axis, thirdIndex)
 		index += 1
+		currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		
 	
 	print "positiv z-sträcka"
 	selectedFaces.append(thirdIndex)
 	axis = 'z'
 	index += 1
-	while getDirectionalFace(selectedFaces[index], axis, fourthIndex) != fourthIndex:
-		if getDirectionalFace(selectedFaces[index], axis, fourthIndex) == fourthIndex:
-			print "hi"
-			break
-		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index],  axis, fourthIndex))
+	currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, -1)
+	while currentIndex != fourthIndex:
+		if currentIndex == fourthIndex:
+			print "hi" 
+		selectedFaces.append(currentIndex)
 		index += 1
+		currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		
 
 	print "positiv x-sträcka"
 	selectedFaces.append(fourthIndex)
-
 	axis = 'x'
 	index += 1
-	while getDirectionalFace(selectedFaces[index], axis, fourthIndex) != fourthIndex:
-		if getDirectionalFace(selectedFaces[index], axis, startIndex) == startIndex:
-			print "hi"
-			break
-		else:
-			selectedFaces.append(getDirectionalFace(selectedFaces[index],  axis, startIndex))
+	currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+	while  currentIndex != startIndex:
+		selectedFaces.append(currentIndex)
 		index += 1
-		
-
+		currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 
 	return selectedFaces
 
