@@ -66,55 +66,15 @@ selectedFacesList = []
 lastIndex = -1
 
 
-# while not meshPolyIt.isDone():
 
-# 	normal = om.MVector()
-# 	meshPolyIt.getNormal(normal)
+def run():
 
-# 	position = om.MPointArray()
-# 	vtxPointZero = meshPolyIt.center() 
-
-# 	polyPosition.append(vtxPointZero)
-# 	normals.append(normal)
-
-# 	# use the seconary up if the normal is facing the same direction as the object Y
-# 	# typ andra raden från transformationsmatrisen
-# 	up = primaryUp if (1 - abs(primaryUp * normal)) > 0.001 else secondaryUp
-
-# 	# Return the position of the center of the current polygon i förhållande till pivot.
-# 	center = meshPolyIt.center()
-
-# 	#hittar de tre anslutande polygonen
-# 	faceArray = om.MIntArray()
-# 	meshPolyIt.getConnectedFaces(faceArray)
-
-# 	meshPolyIt.next()
-
-# 	#lägger till de tre anslutande polygonen i faceNeighbors listan
-# 	faceNeighbors.append([faceArray[i] for i in range(faceArray.length())])
-
-# 	xAxis = up ^ normal
-# 	yAxis = normal ^ xAxis
-
-
-# 	matrixList = [xAxis.x, xAxis.y, xAxis.z, 0,
-# 				  yAxis.x, yAxis.y, yAxis.z, 0,
-# 				  normal.x, normal.y, normal.z, 0,
-# 				  center.x, center.y, center.z, 1]
-
-# 	# skapar matrisen och lägger till den i faceCoordinates
-# 	faceMatrix = om.MMatrix()
-# 	om.MScriptUtil.createMatrixFromList(matrixList, faceMatrix)
-
-# 	# varje polygon får en matris
-# 	faceCoordinates.append(faceMatrix)
-
-
-
-
-def getUpFace(faceIndex):
+	#set_polyData()
+	targetIds = []
 	poly_ids = []
-	poly_ids = ui_setTargetGeometry()
+
+	targetIds = getCornerPolygonIds()
+	poly_ids = surround_building(targetIds)
 
 	sel = om.MSelectionList()
 	om.MGlobal.getActiveSelectionList(sel)
@@ -235,11 +195,11 @@ def getDirectionalFace(selectedFaces, axis, endIndex, lastIndex):
 	#print "nextFace", nextFace
 	return nextFace
 
-def ui_setTargetGeometry():
+def getCornerPolygonIds():
 	targetGeom = []
 
 	selList = om.MSelectionList()
-	#lägger till markerade faces i listan selList
+	#lägger till markerade meshar i listan selList
 	om.MGlobal.getActiveSelectionList(selList)
 
 	if selList.isEmpty():
@@ -248,7 +208,7 @@ def ui_setTargetGeometry():
 
 	
 
-	# itererar igenom listan med markerade faces
+	# itererar igenom markerade geometrin
 	selListIter = om.MItSelectionList(selList)
 	while not selListIter.isDone():
 		print "selListIter"
@@ -280,6 +240,60 @@ def ui_setTargetGeometry():
 			meshName = subName[0:(subName.find("|"))]
 			print "dagPath" + str(meshName)
 			# lägger till den markerade facet/componenten i en lista
+			#targetGeom.append(selItem)
+
+
+		selListIter.next()
+
+
+
+	return targetIds
+
+def set_polyData():
+	targetGeom = []
+	selList = om.MSelectionList()
+	#lägger till markerade meshar i listan selList
+	om.MGlobal.getActiveSelectionList(selList)
+
+	if selList.isEmpty():
+		print "no targets"
+		return
+
+	
+
+	# itererar igenom markerade geometrin
+	selListIter = om.MItSelectionList(selList)
+	while not selListIter.isDone():
+		print "selListIter"
+
+		components = om.MObject()
+		dagPath = om.MDagPath()
+		selListIter.getDagPath(dagPath, components)
+
+		if components.isNull():   
+			selListIter.next()
+			continue
+
+		compListFn = om.MFnComponent(components)
+		compType = compListFn.componentType()
+
+
+		# kontrollerar om det finns ett polygon i komponenterna
+				# kontrollerar om det finns ett polygon i komponenterna
+		if compType == om.MFn.kMeshPolygonComponent:
+			# styckar ut en enstaka komponent från alla markerade komponenter
+			compListFn = om.MFnSingleIndexedComponent(components)
+			targetIds = om.MIntArray()
+			# äntligen får vi ut face id:et
+			compListFn.getElements(targetIds)
+			print "selListIter: "+ str(targetIds)
+			print "element: ", compListFn.element(1) 
+			selItem = SelectionItem(dagPath, targetIds)
+			pathName = dagPath.fullPathName()
+			subName = pathName[(pathName.find("|")+1):len(pathName)]
+			meshName = subName[0:(subName.find("|"))]
+			print "dagPath" + str(meshName)
+			# lägger till den markerade facet/componenten i en lista
 			targetGeom.append(selItem)
 
 
@@ -289,19 +303,28 @@ def ui_setTargetGeometry():
 		print "somthing is wrong" 
 		return
 
-
 	#transformations matris, skala och translatering
 	meshMatrix = cmds.xform(meshName, q=True, ws=True, matrix=True)
 	#plockar ut andra kolumnen med 3 componenter, kommer motsvara en vektor som pekar i Y-riktning eftersom vi drar nytta av skalningen som 'alltid' är positiv
 	#vi kunde lika gärna gjort en egen vektor (0,1,0) istället för (0,y-skalning,0) 
 
-	printMatrix(meshMatrix)
+	#printMatrix(meshMatrix)
 
 	primaryUp = om.MVector(*meshMatrix[4:7])
 	#polockar ut andra raden
 	# have a secondary up vector for faces that are facing the same way as the original up
 	# pekar i z-riktning
 	secondaryUp = om.MVector(*meshMatrix[8:11])
+
+	sel = om.MSelectionList()
+	sel.add(meshShape)
+
+	#hämtar meshen
+	meshObj = om.MObject()
+	sel.getDependNode(0, meshObj)
+
+	# skapar en iterator till alla polygon i meshen
+	meshPolyIt = om.MItMeshPolygon(meshObj)
 
 
 	connectedFaces = om.MIntArray()
@@ -391,14 +414,14 @@ def ui_setTargetGeometry():
 
 			# varje polygon får en matris
 			faceCoordinates.append(faceMatrix)
-					faceIter.next()
-		
+			faceIter.next()
 
+	
+
+def surround_building(targetIds):
 
 	neighborFaces = []
 	selectedFaces = []
-
-
 
 
 	poly_selectedList=[{'id':targetIds[0], 'x':polyPosition[targetIds[0]].x, 'z':polyPosition[targetIds[0]].y },
@@ -520,6 +543,7 @@ class ObjectPolyData:
 			outStr += str(poly) + endStr
 		return outStr  
 
+# marerad mesh, den kommer även innehålla target polygon
 class SelectionItem:
 
 #----------------------------------------------------------------------------------------------------------------------
