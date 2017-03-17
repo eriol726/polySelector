@@ -12,21 +12,6 @@ class polySelector:
 		self.geometryData.setPolyData()
 
 
-	def printMatrix(matrix):
-		endStr = '\n'
-		outStr = ''
-		outStr += endStr
-
-		for i in range(0,16):
-			if i == 0:
-				outStr += '['
-
-			if( i > 0 and i%4==0):
-				outStr += endStr
-			outStr += str(matrix[i]) + str(' ')
-		outStr += ']'
-
-		print 'transformation: ',  outStr
 
 	def printMMatrix(matrix):
 		endStr = '\n'
@@ -97,6 +82,7 @@ class polySelector:
 			print "Select four polygons"
 			return
 
+
 		# itererar igenom objektets noder, de noder som finns i hypergraphen
 		selListIter = om.MItSelectionList(selList)
 		while not selListIter.isDone():
@@ -124,6 +110,10 @@ class polySelector:
 
 			selListIter.next()
 
+		if len(targetIds) > 10:
+			print "too many polygons selected"
+			return
+
 		return targetIds
 
 	
@@ -136,6 +126,22 @@ class GeometryData:
 	def __init__(self):
 		
 		self.polygons = []
+
+	def printMatrix(self,matrix):
+		endStr = '\n'
+		outStr = ''
+		outStr += endStr
+
+		for i in range(0,16):
+			if i == 0:
+				outStr += '['
+
+			if( i > 0 and i%4==0):
+				outStr += endStr
+			outStr += str(matrix[i]) + str(' ')
+		outStr += ']'
+
+		print 'transformation: ',  outStr
 
 	def setPolyData(self):
 		print "tja"
@@ -163,10 +169,15 @@ class GeometryData:
 
 
 
-		#transformations matris, skala och translatering
+		#transformations matris, skala, rotation och translatering
 		meshMatrix = cmds.xform(meshName, q=True, ws=True, matrix=True)
 		#plockar ut andra kolumnen med 3 componenter, kommer motsvara en vektor som pekar i Y-riktning eftersom vi drar nytta av skalningen som 'alltid' är positiv
-		#vi kunde lika gärna gjort en egen vektor (0,1,0) istället för (0,y-skalning,0) 
+		#vi kunde lika gärna gjort en egen vektor (0,1,0) istället för (0,y-skalning,0)
+
+		self.printMatrix(meshMatrix)
+
+		transMatrix = om.MMatrix()
+		om.MScriptUtil.createMatrixFromList(meshMatrix, transMatrix) 
 
 		#printMatrix(meshMatrix)
 
@@ -190,11 +201,6 @@ class GeometryData:
 		edgeIter = om.MItMeshEdge(dagPath)
 		faceIter = om.MItMeshPolygon(dagPath)
 
-		# skapar ett nytt klassobjekt
-		objPolyData = ObjectPolyData()
-		self.polyData.append(objPolyData)
-		# initierar dagPath
-		objPolyData.dagPath = dagPath
 		#initierar faceIter.count() antal toma polygons till objektet
 		self.polygons = [PolyData() for _ in xrange(faceIter.count())]
 
@@ -286,6 +292,8 @@ class GeometryData:
 		axis = 'z'
 		index = 0
 
+		if os.path.exists("c:/break"): break
+
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
 		while  currentIndex != secondIndex:
 			if currentIndex == secondIndex:
@@ -301,7 +309,7 @@ class GeometryData:
 		axis = 'x'
 		index += 1
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
-		while  currentIndex != thirdIndex:
+		while currentIndex != thirdIndex:
 			if currentIndex == thirdIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
@@ -319,7 +327,7 @@ class GeometryData:
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 		while currentIndex != fourthIndex:
 			if currentIndex == fourthIndex:
-				print "hi" 
+				print "found" 
 			selectedFaces.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
@@ -359,15 +367,17 @@ class GeometryData:
 		goalPos= self.polygons[endIndex].polyPosition
 
 		selectedFaceNeighbors = self.polygons[selectedFaces].connectedFaces
-
-		neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
-		neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
-		neighborsPos2 = self.polygons[selectedFaceNeighbors[2]].polyPosition
+		
 
 		numberOfNeighbors = len(selectedFaceNeighbors)
 
 
 		if numberOfNeighbors == 3:
+			# omskrivning till ngt kortare
+			neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
+			neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
+			neighborsPos2 = self.polygons[selectedFaceNeighbors[2]].polyPosition
+
 			distance1_3D = math.sqrt(math.pow(goalPos.x-neighborsPos0.x,2)+math.pow(goalPos.y-neighborsPos0.y,2)+math.pow(goalPos.z-neighborsPos0.z,2))
 			distance2_3D = math.sqrt(math.pow(goalPos.x-neighborsPos1.x,2)+math.pow(goalPos.y-neighborsPos1.y,2)+math.pow(goalPos.z-neighborsPos1.z,2))
 			distance3_3D = math.sqrt(math.pow(goalPos.x-neighborsPos2.x,2)+math.pow(goalPos.y-neighborsPos2.y,2)+math.pow(goalPos.z-neighborsPos2.z,2))
@@ -376,25 +386,77 @@ class GeometryData:
 			#distance2_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[1]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[1]].y,2))
 			#distance3_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[2]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[2]].y,2))
 		elif numberOfNeighbors == 2:
-			distance1_3D = abs(goalPos-neighborsPos0,str(axis))
-			distance2_3D = abs(goalPos-neighborsPos1,str(axis))
+			neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
+			neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
+
+			distance1_3D = math.sqrt(math.pow(goalPos.x-neighborsPos0.x,2)+math.pow(goalPos.y-neighborsPos0.y,2)+math.pow(goalPos.z-neighborsPos0.z,2))
+			distance2_3D = math.sqrt(math.pow(goalPos.x-neighborsPos1.x,2)+math.pow(goalPos.y-neighborsPos1.y,2)+math.pow(goalPos.z-neighborsPos1.z,2))
+			
 			# något som är större än distance1 och distance2
 			distance3_3D = distance1_3D+distance2_3D
 
 		elif numberOfNeighbors == 1:
+			print "one neighbors"
 			distance1_3D = abs(goalPos-neighborsPos0,str(axis))
 			# något som är större än distance1
 			distance2_3D = distance1+distance1_3D
 			distance3_3D = distance1+distance1_3D
 
 
+		if numberOfNeighbors == 3:
+			if distance1_3D<distance2_3D and distance1_3D<distance3_3D:
+				nextFace = selectedFaceNeighbors[0]
+			elif distance2_3D<distance3_3D and distance2_3D<distance1_3D:
+				nextFace = selectedFaceNeighbors[1]
+			elif distance3_3D<distance1_3D and distance3_3D<distance2_3D:
+				nextFace = selectedFaceNeighbors[2]
 
-		if distance1_3D<distance2_3D and distance1_3D<distance3_3D:
-			nextFace = selectedFaceNeighbors[0]
-		elif distance3_3D<distance1_3D and distance3_3D<distance2_3D:
-			nextFace = selectedFaceNeighbors[2]
-		elif distance2_3D<distance3_3D and distance2_3D<distance1_3D:
-			nextFace = selectedFaceNeighbors[1]
+		elif numberOfNeighbors == 2:
+			if distance1_3D<distance2_3D:
+				nextFace = selectedFaceNeighbors[0]
+			else:
+				nextFace = selectedFaceNeighbors[1]
+
+
+
+		if numberOfNeighbors == 3:
+			if nextFace == selectedFaceNeighbors[0] and self.polygons[selectedFaceNeighbors[0]].selected == True:
+				print "case1"
+				if distance2_3D<distance3_3D and self.polygons[selectedFaceNeighbors[1]].selected != True: 
+					nextFace = selectedFaceNeighbors[1]
+				elif self.polygons[selectedFaceNeighbors[2]].selected != True:
+					nextFace = selectedFaceNeighbors[2]
+
+			elif nextFace == selectedFaceNeighbors[1] and self.polygons[selectedFaceNeighbors[1]].selected == True:
+				print "case2"
+				if distance1_3D<distance3_3D and self.polygons[selectedFaceNeighbors[0]].selected != True: 
+					nextFace = selectedFaceNeighbors[0]
+				elif self.polygons[selectedFaceNeighbors[2]].selected != True:
+					nextFace = selectedFaceNeighbors[2]
+
+			elif nextFace == selectedFaceNeighbors[2] and self.polygons[selectedFaceNeighbors[2]].selected == True:
+				print "case3"
+				if distance1_3D<distance2_3D and self.polygons[selectedFaceNeighbors[0]].selected != True: 
+					nextFace = selectedFaceNeighbors[0]
+				elif self.polygons[selectedFaceNeighbors[1]].selected != True:
+					nextFace = selectedFaceNeighbors[1]
+			else:
+				print "no solution"
+
+		elif numberOfNeighbors == 2:
+			if nextFace == selectedFaceNeighbors[0] and self.polygons[selectedFaceNeighbors[0]].selected == True:
+				print "case4"
+				if self.polygons[selectedFaceNeighbors[1]].selected != True:
+					nextFace = selectedFaceNeighbors[1]
+			elif nextFace == selectedFaceNeighbors[1] and self.polygons[selectedFaceNeighbors[1]].selected == True:
+				print "case5"
+				if self.polygons[selectedFaceNeighbors[0]].selected != True:
+					nextFace = selectedFaceNeighbors[0]
+
+
+
+
+
 
 		#om nextFace redan redan är markerat, välj en annan granne
 		# for n in selectedFacesList:
@@ -424,8 +486,8 @@ class GeometryData:
 		# 			nextFace = selectedFaceNeighbors[1]
 		# 			#print "case6"
 
-				
-		#print "nextFace", nextFace
+		self.polygons[nextFace].selected = True
+		print "nextFace", nextFace
 		return nextFace
 		
 
@@ -455,12 +517,11 @@ class PolyData:
 #######################################################################################################################
 
 
-def start():
+def run():
 	classObj = polySelector()
 	print "classObj", classObj.geometryData.polygons[0].selected
 	return classObj
 
-def run():
-	print "classObj", classObj.geometryData.polygons[0].selected
+
 
 	
