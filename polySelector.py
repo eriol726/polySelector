@@ -11,9 +11,6 @@ class polySelector:
 		self.geometryData = GeometryData()
 		self.geometryData.setPolyData()
 
-		print "first poly", self.geometryData.polyData[0].polygons[7935].connectedFaces
-		self.select()
-		print "targets",
 
 	def printMatrix(matrix):
 		endStr = '\n'
@@ -53,7 +50,7 @@ class polySelector:
 		poly_ids = []
 
 		targetIds = self.getCornerPolygonIds()
-		poly_ids = self.surround_building(targetIds)
+		poly_ids = self.geometryData.surround_building(targetIds)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -129,90 +126,6 @@ class polySelector:
 
 		return targetIds
 
-	def getDirectionalFace(self, selectedFaces, axis, endIndex, lastIndex):
-
-
-		# print "self.polyData[0]:",self.polyData[0]
-		# print "self.polyData[0].connectedFaces:",self.polyData[0].connectedFaces[0]
-
-		startFaceMatrix = faceCoordinates[selectedFaces]
-		endFaceMatrix = faceCoordinates[endIndex]
-
-		nMatrix = faceCoordinates[endIndex] * startFaceMatrix.inverse()
-		nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
-
-		nextFace = -1
-		selectedFacesList.append(selectedFaces)
-		goalVtx= polyPosition[endIndex]
-
-		selectedFaceNeighbors = faceNeighbors[selectedFaces]
-
-		
-
-		numberOfNeighbors = len(selectedFaceNeighbors)
-
-
-		if numberOfNeighbors == 3:
-			distance1_3D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[0]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[0]].y,2)+math.pow(goalVtx.z-polyPosition[selectedFaceNeighbors[0]].z,2))
-			distance2_3D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[1]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[1]].y,2)+math.pow(goalVtx.z-polyPosition[selectedFaceNeighbors[1]].z,2))
-			distance3_3D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[2]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[2]].y,2)+math.pow(goalVtx.z-polyPosition[selectedFaceNeighbors[2]].z,2))
-
-			#distance1_2D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[0]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[0]].y,2))
-			#distance2_2D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[1]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[1]].y,2))
-			#distance3_2D = math.sqrt(math.pow(goalVtx.x-polyPosition[selectedFaceNeighbors[2]].x,2)+math.pow(goalVtx.y-polyPosition[selectedFaceNeighbors[2]].y,2))
-		elif numberOfNeighbors == 2:
-			distance1_3D = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
-			distance2_3D = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[1]],str(axis)))
-			# något som är större än distance1 och distance2
-			distance3_3D = distance1_3D+distance2_3D
-
-		elif numberOfNeighbors == 1:
-			distance1_3D = abs(goalVtx-getattr(polyPosition[selectedFaceNeighbors[0]],str(axis)))
-			# något som är större än distance1
-			distance2_3D = distance1+distance1_3D
-			distance3_3D = distance1+distance1_3D
-
-
-
-		if distance1_3D<distance2_3D and distance1_3D<distance3_3D:
-			nextFace = selectedFaceNeighbors[0]
-		elif distance3_3D<distance1_3D and distance3_3D<distance2_3D:
-			nextFace = selectedFaceNeighbors[2]
-		elif distance2_3D<distance3_3D and distance2_3D<distance1_3D:
-			nextFace = selectedFaceNeighbors[1]
-
-		#om nextFace redan redan är markerat, välj en annan granne
-		for n in selectedFacesList:
-			if(numberOfNeighbors == 2):
-				if n == selectedFaceNeighbors[0]:
-					nextFace = selectedFaceNeighbors[1]
-				elif  n == selectedFaceNeighbors[1] and numberOfNeighbors == 2:
-					nextFace = selectedFaceNeighbors[0]
-
-			elif(numberOfNeighbors == 3):
-				if n == selectedFaceNeighbors[0] and distance2_3D<distance3_3D:
-					nextFace = selectedFaceNeighbors[1]
-					#print "case1"
-				elif n == selectedFaceNeighbors[0] and distance2_3D>distance3_3D:
-					nextFace = selectedFaceNeighbors[2]
-					#print "case2"
-				elif n == selectedFaceNeighbors[1] and distance1_3D<distance3_3D:
-					nextFace = selectedFaceNeighbors[0]
-					#print "case3"
-				elif n == selectedFaceNeighbors[1] and distance1_3D>distance3_3D:
-					nextFace = selectedFaceNeighbors[2]
-					#print "case4"
-				elif n == selectedFaceNeighbors[2] and distance1_3D<distance2_3D:
-					nextFace = selectedFaceNeighbors[0]
-					#print "case5"
-				elif n == selectedFaceNeighbors[2] and distance1_3D>distance2_3D:
-					nextFace = selectedFaceNeighbors[1]
-					#print "case6"
-
-				
-		#print "nextFace", nextFace
-		return nextFace
-
 	
 
 #######################################################################################################################
@@ -222,7 +135,7 @@ class GeometryData:
 #----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
 		
-		self.polyData = []
+		self.polygons = []
 
 	def setPolyData(self):
 		print "tja"
@@ -283,7 +196,7 @@ class GeometryData:
 		# initierar dagPath
 		objPolyData.dagPath = dagPath
 		#initierar faceIter.count() antal toma polygons till objektet
-		objPolyData.polygons = [PolyData() for _ in xrange(faceIter.count())]
+		self.polygons = [PolyData() for _ in xrange(faceIter.count())]
 
 
 		#print "edgeIter: " + str(edgeIter.index())
@@ -292,16 +205,16 @@ class GeometryData:
 		while not faceIter.isDone():
 			#print "index: ", faceIter.index()
 			#cfLength = edgeIter.getConnectedFaces(connectedFaces)
-			polyData = objPolyData.polygons[i]
-			objPolyData.polygons[i].normalAngel = 5.0
+			polyData = self.polygons[i]
+			self.polygons[i].normalAngel = 5.0
 			
 
 			position = om.MPointArray()
-			objPolyData.polygons[i].polyPosition = faceIter.center()
+			self.polygons[i].polyPosition = faceIter.center()
 
 			normal = om.MVector()
 			faceIter.getNormal(normal)
-			objPolyData.polygons[i].normal = normal
+			self.polygons[i].normal = normal
 
 
 
@@ -317,7 +230,7 @@ class GeometryData:
 			faceIter.getConnectedFaces(faceArray)
 
 			#lägger till de tre anslutande polygonen i faceNeighbors listan
-			objPolyData.polygons[i].connectedFaces = faceArray
+			self.polygons[i].connectedFaces = faceArray
 
 			
 
@@ -336,21 +249,21 @@ class GeometryData:
 			om.MScriptUtil.createMatrixFromList(matrixList, faceMatrix)
 
 			# varje polygon får en matris
-			objPolyData.polygons[i].faceMatrix = faceMatrix
+			self.polygons[i].faceMatrix = faceMatrix
 			# lägger till klassobjektet i listan
 			i+=1
 			faceIter.next()
-			
+
 	def surround_building(self,targetIds):
 
 		neighborFaces = []
 		selectedFaces = []
 
 
-		poly_selectedList=[{'id':targetIds[0], 'x':self.polyData[0].polyPosition[targetIds[0]].x, 'z':self.polyData[0].polyPosition[targetIds[0]].y },
-						   {'id':targetIds[1], 'x':polyPosition[targetIds[1]].x, 'z':polyPosition[targetIds[1]].y },
-						   {'id':targetIds[2], 'x':polyPosition[targetIds[2]].x, 'z':polyPosition[targetIds[2]].y },
-						   {'id':targetIds[3], 'x':polyPosition[targetIds[3]].x, 'z':polyPosition[targetIds[3]].y }]
+		poly_selectedList=[{'id':targetIds[0], 'x':self.polygons[targetIds[0]].polyPosition.x, 'z':self.polygons[targetIds[0]].polyPosition.y },
+						   {'id':targetIds[1], 'x':self.polygons[targetIds[1]].polyPosition.x, 'z':self.polygons[targetIds[1]].polyPosition.y },
+						   {'id':targetIds[2], 'x':self.polygons[targetIds[2]].polyPosition.x, 'z':self.polygons[targetIds[2]].polyPosition.y },
+						   {'id':targetIds[3], 'x':self.polygons[targetIds[3]].polyPosition.x, 'z':self.polygons[targetIds[3]].polyPosition.y }]
 		
 		#sorted(poly_selectedList, key=lambda k: k['x'])
 
@@ -373,13 +286,13 @@ class GeometryData:
 		axis = 'z'
 		index = 0
 
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
 		while  currentIndex != secondIndex:
 			if currentIndex == secondIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
 			index += 1
-			currentIndex = getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
 			
 			
 		
@@ -387,13 +300,13 @@ class GeometryData:
 		selectedFaces.append(secondIndex)
 		axis = 'x'
 		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
 		while  currentIndex != thirdIndex:
 			if currentIndex == thirdIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
 			index += 1
-			currentIndex = getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
 			
 			
 			
@@ -403,30 +316,117 @@ class GeometryData:
 		selectedFaces.append(thirdIndex)
 		axis = 'z'
 		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 		while currentIndex != fourthIndex:
 			if currentIndex == fourthIndex:
 				print "hi" 
 			selectedFaces.append(currentIndex)
 			index += 1
-			currentIndex = getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 			
 
 		print "positiv x-sträcka"
 		selectedFaces.append(fourthIndex)
 		axis = 'x'
 		index += 1
-		currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 		while currentIndex != startIndex:
 			if currentIndex == startIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
 			index += 1
-			currentIndex = getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 			
 			
 
 		return selectedFaces
+
+	def getDirectionalFace(self, selectedFaces, axis, endIndex, lastIndex):
+
+
+		# print "self.polyData[0]:",self.polyData[0]
+		# print "self.polyData[0].connectedFaces:",self.polyData[0].connectedFaces[0]
+
+		startFaceMatrix = self.polygons[selectedFaces].faceMatrix
+		endFaceMatrix = self.polygons[endIndex].faceMatrix
+
+		nMatrix = endFaceMatrix * startFaceMatrix.inverse()
+		nVector = om.MVector(nMatrix(3,0), nMatrix(3,1), nMatrix(3,2))
+
+		nextFace = -1
+		#selectedFacesList.append(selectedFaces)
+
+		goalPos= self.polygons[endIndex].polyPosition
+
+		selectedFaceNeighbors = self.polygons[selectedFaces].connectedFaces
+
+		neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
+		neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
+		neighborsPos2 = self.polygons[selectedFaceNeighbors[2]].polyPosition
+
+		numberOfNeighbors = len(selectedFaceNeighbors)
+
+
+		if numberOfNeighbors == 3:
+			distance1_3D = math.sqrt(math.pow(goalPos.x-neighborsPos0.x,2)+math.pow(goalPos.y-neighborsPos0.y,2)+math.pow(goalPos.z-neighborsPos0.z,2))
+			distance2_3D = math.sqrt(math.pow(goalPos.x-neighborsPos1.x,2)+math.pow(goalPos.y-neighborsPos1.y,2)+math.pow(goalPos.z-neighborsPos1.z,2))
+			distance3_3D = math.sqrt(math.pow(goalPos.x-neighborsPos2.x,2)+math.pow(goalPos.y-neighborsPos2.y,2)+math.pow(goalPos.z-neighborsPos2.z,2))
+
+			#distance1_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[0]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[0]].y,2))
+			#distance2_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[1]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[1]].y,2))
+			#distance3_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[2]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[2]].y,2))
+		elif numberOfNeighbors == 2:
+			distance1_3D = abs(goalPos-neighborsPos0,str(axis))
+			distance2_3D = abs(goalPos-neighborsPos1,str(axis))
+			# något som är större än distance1 och distance2
+			distance3_3D = distance1_3D+distance2_3D
+
+		elif numberOfNeighbors == 1:
+			distance1_3D = abs(goalPos-neighborsPos0,str(axis))
+			# något som är större än distance1
+			distance2_3D = distance1+distance1_3D
+			distance3_3D = distance1+distance1_3D
+
+
+
+		if distance1_3D<distance2_3D and distance1_3D<distance3_3D:
+			nextFace = selectedFaceNeighbors[0]
+		elif distance3_3D<distance1_3D and distance3_3D<distance2_3D:
+			nextFace = selectedFaceNeighbors[2]
+		elif distance2_3D<distance3_3D and distance2_3D<distance1_3D:
+			nextFace = selectedFaceNeighbors[1]
+
+		#om nextFace redan redan är markerat, välj en annan granne
+		# for n in selectedFacesList:
+		# 	if(numberOfNeighbors == 2):
+		# 		if n == selectedFaceNeighbors[0]:
+		# 			nextFace = selectedFaceNeighbors[1]
+		# 		elif  n == selectedFaceNeighbors[1] and numberOfNeighbors == 2:
+		# 			nextFace = selectedFaceNeighbors[0]
+
+		# 	elif(numberOfNeighbors == 3):
+		# 		if n == selectedFaceNeighbors[0] and distance2_3D<distance3_3D:
+		# 			nextFace = selectedFaceNeighbors[1]
+		# 			#print "case1"
+		# 		elif n == selectedFaceNeighbors[0] and distance2_3D>distance3_3D:
+		# 			nextFace = selectedFaceNeighbors[2]
+		# 			#print "case2"
+		# 		elif n == selectedFaceNeighbors[1] and distance1_3D<distance3_3D:
+		# 			nextFace = selectedFaceNeighbors[0]
+		# 			#print "case3"
+		# 		elif n == selectedFaceNeighbors[1] and distance1_3D>distance3_3D:
+		# 			nextFace = selectedFaceNeighbors[2]
+		# 			#print "case4"
+		# 		elif n == selectedFaceNeighbors[2] and distance1_3D<distance2_3D:
+		# 			nextFace = selectedFaceNeighbors[0]
+		# 			#print "case5"
+		# 		elif n == selectedFaceNeighbors[2] and distance1_3D>distance2_3D:
+		# 			nextFace = selectedFaceNeighbors[1]
+		# 			#print "case6"
+
+				
+		#print "nextFace", nextFace
+		return nextFace
 		
 
 
@@ -454,30 +454,13 @@ class PolyData:
 
 #######################################################################################################################
 
-class ObjectPolyData:
-
-#----------------------------------------------------------------------------------------------------------------------
-	def __init__(self):
-		self.dagPath = None
-		self.polygons = []
-
-#----------------------------------------------------------------------------------------------------------------------
-	def __str__(self):
-		endStr = '\n'
-		outStr = ''
-		outStr += 'DagPath = ' + self.dagPath.fullPathName() + endStr
-		for i, poly in enumerate(self.polygons):
-			outStr += 'polyId = ' + str(i) + endStr
-			outStr += str(poly) + endStr
-		return outStr  
-
 
 def start():
 	classObj = polySelector()
-	print "classObj", classObj.geometryData.polyData[0].polygons[0].selected
+	print "classObj", classObj.geometryData.polygons[0].selected
 	return classObj
 
 def run():
-	print "classObj", classObj.geometryData.polyData[0].polygons[0].selected
+	print "classObj", classObj.geometryData.polygons[0].selected
 
 	
