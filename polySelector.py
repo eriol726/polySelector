@@ -37,7 +37,7 @@ class polySelector:
 
 		targetIds = self.getCornerPolygonIds()
 		poly_ids = self.geometryData.surround_building(targetIds)
-		poly_ids = self.geometryData.selectPolygons(poly_ids)
+		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -58,11 +58,28 @@ class polySelector:
 
 		# Create a singleIndexedComponent of type polygon
 		mfn_components = om.MFnSingleIndexedComponent()
-		components = mfn_components.create(om.MFn.kMeshPolygonComponent)
+		components = mfn_components.create(om.MFn.kMeshVertComponent)
 		# Add our MIntArray of ids to the component
 		mfn_components.addElements(polyids)
 
 		to_sel = om.MSelectionList()
+		# The object the selection refers to, and the components on that object to select
+		to_sel.add(mdag, components)
+		om.MGlobal.setActiveSelectionList(to_sel)
+
+		#********************
+
+		util = om.MScriptUtil()
+		util.createFromList(poly_ids2, len(poly_ids2))
+		ids_ptr = util.asIntPtr()
+		polyids = om.MIntArray(ids_ptr, len(poly_ids2))
+
+		# Create a singleIndexedComponent of type polygon
+		mfn_components = om.MFnSingleIndexedComponent()
+		components = mfn_components.create(om.MFn.kMeshPolygonComponent)
+		# Add our MIntArray of ids to the component
+		mfn_components.addElements(polyids)
+
 		# The object the selection refers to, and the components on that object to select
 		to_sel.add(mdag, components)
 		om.MGlobal.setActiveSelectionList(to_sel)
@@ -237,19 +254,19 @@ class GeometryData:
 			vertexIter.next()
 
 
+		i=0
+		self.edges = [EdgeData() for _ in xrange(edgeIter.count())]
+		while not edgeIter.isDone():
 
-		# self.edges = [EdgeData() for _ in xrange(edgeIter.count())]
-		# while not edgeIter.isDone():
+			connectedEdges = om.MIntArray()
+			edgeIter.getConnectedEdges(connectedEdges)
 
-		# 	connectedEdges = om.MIntArray()
-  #           edgeIter.getConnectedEdges(connectedEdges)
+			self.edges[i].connectedEdges = connectedEdges
 
-  #           self.edges[i].connectedEdges = connectedEdges
-
-  #           self.edges[i].edgePosition = edgeIter.center()
-  #           self.edges[i].numberOfNeighbors = edgeIter.numConnectedEdges()
-  #           i+=1
-  #           edgeIter.next()
+			self.edges[i].edgePosition = edgeIter.center()
+			#self.edges[i].numberOfNeighbors = edgeIter.numConnectedEdges()
+			i+=1
+			edgeIter.next()
 
 		# #initierar faceIter.count() antal toma polygons till objektet
 		self.polygons = [PolyData() for _ in xrange(faceIter.count())]
@@ -556,21 +573,34 @@ class GeometryData:
 		# self.polygons[nextFace].selected = True
 		return nextVertex
 
-	def selectPolygons(self, selectedVertices):
+	def selectEdges(self, selectedVertices):
+
+		selectdEdges = []
+
+		for index in selectedVertices:
+			connectedEdges = self.vertex[index].connectedEdges
+
+			#for edges in connectedEdges:
+
+	def selectPolygonsBorder(self, selectedVertices):
 
 		selectdPolygons = []
 
-		for index in selectedVertices:
+		for index in range(0,len(selectedVertices)):
 
-			connectedPolygons = self.vertex[index].connectedFaces
+			connectedPolygons = self.vertex[selectedVertices[index]].connectedFaces
 
 			for polygon in connectedPolygons:
 				if os.path.exists("c:/break"): break
-				if self.polygons[polygon].position.y > self.vertex[index].position.y and self.polygons[polygon].selected == False and self.polygons[polygon].normal.y < 0.6:
+				print "centroid: ", self.polygons[polygon].position.y
+				print "vertex: ", self.vertex[selectedVertices[index]].position.y
+
+				if self.polygons[polygon].position.y > self.vertex[selectedVertices[index]].position.y and self.polygons[polygon].selected == False :
 					print "polygon index ",polygon
 					print "normal", self.polygons[polygon].normal.y
 					self.polygons[polygon].selected = True
 					selectdPolygons.append(polygon)
+
 
 		return selectdPolygons
 	
