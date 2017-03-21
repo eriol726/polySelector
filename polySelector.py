@@ -37,6 +37,7 @@ class polySelector:
 
 		targetIds = self.getCornerPolygonIds()
 		poly_ids = self.geometryData.surround_building(targetIds)
+		poly_ids = self.geometryData.selectPolygons(poly_ids)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -57,7 +58,7 @@ class polySelector:
 
 		# Create a singleIndexedComponent of type polygon
 		mfn_components = om.MFnSingleIndexedComponent()
-		components = mfn_components.create(om.MFn.kMeshVertComponent)
+		components = mfn_components.create(om.MFn.kMeshPolygonComponent)
 		# Add our MIntArray of ids to the component
 		mfn_components.addElements(polyids)
 
@@ -220,8 +221,10 @@ class GeometryData:
 		i=0
 		while not vertexIter.isDone():
 
-			connectedEdges = om.MIntArray()
-			vertexIter.getConnectedEdges(connectedEdges)
+			connectedFaces = om.MIntArray()
+			vertexIter.getConnectedFaces(connectedFaces)
+
+			self.vertex[i].connectedFaces = connectedFaces
 
 			connectedVertices = om.MIntArray()
 			vertexIter.getConnectedVertices(connectedVertices)
@@ -233,7 +236,7 @@ class GeometryData:
 			i+=1
 			vertexIter.next()
 
-		i=0
+
 
 		# self.edges = [EdgeData() for _ in xrange(edgeIter.count())]
 		# while not edgeIter.isDone():
@@ -249,63 +252,40 @@ class GeometryData:
   #           edgeIter.next()
 
 		# #initierar faceIter.count() antal toma polygons till objektet
-		# self.polygons = [PolyData() for _ in xrange(faceIter.count())]
+		self.polygons = [PolyData() for _ in xrange(faceIter.count())]
 
 
-		# #print "edgeIter: " + str(edgeIter.index())
-		# # här loopar vi igenom alla faces i meshen
-		# i=0
-		# while not faceIter.isDone():
-		# 	#print "index: ", faceIter.index()
-		# 	#cfLength = edgeIter.getConnectedFaces(connectedFaces)
-		# 	polyData = self.polygons[i]
-		# 	self.polygons[i].normalAngel = 5.0
-			
-
-		# 	position = om.MPointArray()
-		# 	self.polygons[i].polyPosition = faceIter.center()
-
-		# 	normal = om.MVector()
-		# 	faceIter.getNormal(normal)
-		# 	self.polygons[i].normal = normal
+		#print "edgeIter: " + str(edgeIter.index())
+		# här loopar vi igenom alla faces i meshen
+		i=0
+		while not faceIter.isDone():
+			#print "index: ", faceIter.index()
+			#cfLength = edgeIter.getConnectedFaces(connectedFaces)
+			polyData = self.polygons[i]
+			self.polygons[i].normalAngel = 5.0
 
 
+			self.polygons[i].position = faceIter.center()
 
-		# 	# use the seconary up if the normal is facing the same direction as the object Y
-		# 	# typ andra raden från transformationsmatrisen
-		# 	up = primaryUp if (1 - abs(primaryUp * normal)) > 0.001 else secondaryUp
+			normal = om.MVector()
+			faceIter.getNormal(normal)
+			self.polygons[i].normal = normal
 
-		# 	# Return the position of the center of the current polygon i förhållande till pivot.
-		# 	center = faceIter.center()
+			#hittar de tre anslutande polygonen
+			faceArray = om.MIntArray()
+			faceIter.getConnectedFaces(faceArray)
 
-		# 	#hittar de tre anslutande polygonen
-		# 	faceArray = om.MIntArray()
-		# 	faceIter.getConnectedFaces(faceArray)
+			vertexArray = om.MIntArray()
+			faceIter.getVertices(vertexArray)
 
-		# 	#lägger till de tre anslutande polygonen i faceNeighbors listan
-		# 	self.polygons[i].connectedFaces = faceArray
+			self.polygons[i].vertices = vertexArray
 
-			
-
-
-		# 	xAxis = up ^ normal
-		# 	yAxis = normal ^ xAxis
+			#lägger till de tre anslutande polygonen i faceNeighbors listan
+			self.polygons[i].connectedFaces = faceArray
 
 
-		# 	matrixList = [xAxis.x, xAxis.y, xAxis.z, 0,
-		# 				  yAxis.x, yAxis.y, yAxis.z, 0,
-		# 				  normal.x, normal.y, normal.z, 0,
-		# 				  center.x, center.y, center.z, 1]
-
-		# 	# skapar matrisen och lägger till den i faceCoordinates
-		# 	faceMatrix = om.MMatrix()
-		# 	om.MScriptUtil.createMatrixFromList(matrixList, faceMatrix)
-
-		# 	# varje polygon får en matris
-		# 	self.polygons[i].faceMatrix = faceMatrix
-		# 	# lägger till klassobjektet i listan
-		# 	i+=1
-		# 	faceIter.next()
+			i+=1
+			faceIter.next()
 
 	def surround_building(self,targetIds):
 
@@ -346,7 +326,6 @@ class GeometryData:
 
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
 		while currentIndex != secondIndex:
-			print "itr", index
 			if os.path.exists("c:/break"): break
 			if currentIndex == secondIndex:
 				print "found"
@@ -440,15 +419,12 @@ class GeometryData:
 		for i in range(0,len(selectedVertexNeighbors)):
 			neighborPos = self.vertex[selectedVertexNeighbors[i]].position
 
-			print "neighborPos", neighborPos.x, " ", neighborPos.y, " ", neighborPos.z 
-			print "currentPos", currentPos.x, " ", currentPos.y, " ", currentPos.z 
-
 			CN = neighborPos - currentPos
 
 			neighborMagnitude = math.sqrt(math.pow(CN.x,2)+math.pow(CN.y,2)+math.pow(CN.z,2))
 
 			if neighborMagnitude == 0:
-				print "zero magnitude"
+
 				foundIndex = i
 				break
 
@@ -458,10 +434,8 @@ class GeometryData:
 
 			neighborAngel = neighborAngel*(180/3.1416)
 
-			print "neighborAngel", neighborAngel
 			if neighborAngel < closestAngel and self.vertex[selectedVertexNeighbors[i]].selected != True:
-				print "chosen neighborAngel", neighborAngel
-				print "i", i
+
 				foundIndex = i
 				foundCandidate = True
 				closestAngel = neighborAngel
@@ -471,7 +445,7 @@ class GeometryData:
 		#method 2
 		closestDistance = math.sqrt(math.pow(goalPos.x-currentPos.x,2)+math.pow(neighborPos.y-currentPos.y,2)+math.pow(neighborPos.y-currentPos.z,2))
 		if foundCandidate == False:
-			print "no candidate"
+			print "method 2"
 			for i in range(0,len(selectedVertexNeighbors)):
 				neighborPos = self.vertex[selectedVertexNeighbors[i]].position
 				neighborToGoal = math.sqrt(math.pow(goalPos.x-neighborPos.x,2)+math.pow(neighborPos.y-neighborPos.y,2)+math.pow(neighborPos.y-neighborPos.z,2))
@@ -581,6 +555,24 @@ class GeometryData:
 
 		# self.polygons[nextFace].selected = True
 		return nextVertex
+
+	def selectPolygons(self, selectedVertices):
+
+		selectdPolygons = []
+
+		for index in selectedVertices:
+
+			connectedPolygons = self.vertex[index].connectedFaces
+
+			for polygon in connectedPolygons:
+				if os.path.exists("c:/break"): break
+				if self.polygons[polygon].position.y > self.vertex[index].position.y and self.polygons[polygon].selected == False and self.polygons[polygon].normal.y < 0.6:
+					print "polygon index ",polygon
+					print "normal", self.polygons[polygon].normal.y
+					self.polygons[polygon].selected = True
+					selectdPolygons.append(polygon)
+
+		return selectdPolygons
 	
 	def dotProduct(self,poit1,point2):
 
@@ -596,6 +588,7 @@ class VertexData:
 	def __init__(self):
 		self.selected = False
 		self.connectedEdges = []
+		self.connectedFaces = []
 		self.connectedVertices= []
 		self.position = om.MPoint(0,0,0)
 		self.numberOfNeighbors = 0
@@ -619,7 +612,8 @@ class PolyData:
 		self.selected = False
 		self.normalAngel = 0.0
 		self.connectedFaces = []
-		self.polyPosition = om.MPoint(0,0,0)
+		self.vertices = []
+		self.position = om.MPoint(0,0,0)
 		self.normal = om.MVector(0,0,0)
 		self.faceMatrix = om.MMatrix()
 
