@@ -342,59 +342,59 @@ class GeometryData:
 		index = 0
 
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
-		while currentIndex != secondIndex:
+		for index2 in range(1, 4):
 			if os.path.exists("c:/break"): break
 			if currentIndex == secondIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
+			#index += 1
+			currentIndex = self.getDirectionalFace(selectedFaces[index2], axis, secondIndex, selectedFaces[-2])
 			
 			
 		
-		# print "negativ x-sträcka"
-		selectedFaces.append(secondIndex)
-		axis = 'x'
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
-		while currentIndex != thirdIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == thirdIndex:
-				print "found"
-			selectedFaces.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		# # print "negativ x-sträcka"
+		# selectedFaces.append(secondIndex)
+		# axis = 'x'
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		# while currentIndex != thirdIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == thirdIndex:
+		# 		print "found"
+		# 	selectedFaces.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
 			
 			
 			
 			
 		
-		# print "positiv z-sträcka"
-		selectedFaces.append(thirdIndex)
-		axis = 'z'
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
-		while currentIndex != fourthIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == fourthIndex:
-				print "found" 
-			selectedFaces.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		# # print "positiv z-sträcka"
+		# selectedFaces.append(thirdIndex)
+		# axis = 'z'
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		# while currentIndex != fourthIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == fourthIndex:
+		# 		print "found" 
+		# 	selectedFaces.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 			
 
-		# print "positiv x-sträcka"
-		selectedFaces.append(fourthIndex)
-		axis = 'x'
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
-		while currentIndex != startIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == startIndex:
-				print "found"
-			selectedFaces.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+		# # print "positiv x-sträcka"
+		# selectedFaces.append(fourthIndex)
+		# axis = 'x'
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+		# while currentIndex != startIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == startIndex:
+		# 		print "found"
+		# 	selectedFaces.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 			
 			
 
@@ -432,7 +432,7 @@ class GeometryData:
 
 		foundCandidate = False
 
-
+		
 		for i in range(0,len(selectedVertexNeighbors)):
 			neighborPos = self.vertex[selectedVertexNeighbors[i]].position
 
@@ -469,108 +469,20 @@ class GeometryData:
 
 				if neighborToGoal < closestDistance and self.vertex[i].selected != True:
 					foundIndex = i
+					foundCandidate = True
 					closestDistance = neighborToGoal
 
+		if foundCandidate == False:
+			foundIndex = selectedFaces+1
+			"nextVertex could not be found "
 
 		nextVertex = selectedVertexNeighbors[foundIndex]
 
 		self.vertex[nextVertex].selected = True
 
 
-		print "nextVertex", nextVertex
+		print "nextVertex", selectedFaces
 
-		# selectedFaceNeighbors = self.polygons[selectedFaces].connectedFaces
-		
-
-		# numberOfNeighbors = len(selectedFaceNeighbors)
-
-
-		# if numberOfNeighbors == 3:
-		# 	# omskrivning till ngt kortare
-		# 	neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
-		# 	neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
-		# 	neighborsPos2 = self.polygons[selectedFaceNeighbors[2]].polyPosition
-
-		# 	distance1_3D = math.sqrt(math.pow(goalPos.x-neighborsPos0.x,2)+math.pow(goalPos.y-neighborsPos0.y,2))
-		# 	distance2_3D = math.sqrt(math.pow(goalPos.x-neighborsPos1.x,2)+math.pow(goalPos.y-neighborsPos1.y,2))
-		# 	distance3_3D = math.sqrt(math.pow(goalPos.x-neighborsPos2.x,2)+math.pow(goalPos.y-neighborsPos2.y,2))
-
-		# 	#distance1_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[0]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[0]].y,2))
-		# 	#distance2_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[1]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[1]].y,2))
-		# 	#distance3_2D = math.sqrt(math.pow(goalPos.x-polyPosition[selectedFaceNeighbors[2]].x,2)+math.pow(goalPos.y-polyPosition[selectedFaceNeighbors[2]].y,2))
-		# elif numberOfNeighbors == 2:
-		# 	neighborsPos0 = self.polygons[selectedFaceNeighbors[0]].polyPosition
-		# 	neighborsPos1 = self.polygons[selectedFaceNeighbors[1]].polyPosition
-
-		# 	distance1_3D = math.sqrt(math.pow(goalPos.x-neighborsPos0.x,2)+math.pow(goalPos.y-neighborsPos0.y,2)+math.pow(goalPos.z-neighborsPos0.z,2))
-		# 	distance2_3D = math.sqrt(math.pow(goalPos.x-neighborsPos1.x,2)+math.pow(goalPos.y-neighborsPos1.y,2)+math.pow(goalPos.z-neighborsPos1.z,2))
-			
-		# 	# något som är större än distance1 och distance2
-		# 	distance3_3D = distance1_3D+distance2_3D
-
-		# elif numberOfNeighbors == 1:
-		# 	print "one neighbors"
-		# 	distance1_3D = abs(goalPos-neighborsPos0,str(axis))
-		# 	# något som är större än distance1
-		# 	distance2_3D = distance1+distance1_3D
-		# 	distance3_3D = distance1+distance1_3D
-
-
-		# if numberOfNeighbors == 3:
-		# 	if distance1_3D<distance2_3D and distance1_3D<distance3_3D:
-		# 		nextFace = selectedFaceNeighbors[0]
-		# 	elif distance2_3D<distance3_3D and distance2_3D<distance1_3D:
-		# 		nextFace = selectedFaceNeighbors[1]
-		# 	elif distance3_3D<distance1_3D and distance3_3D<distance2_3D:
-		# 		nextFace = selectedFaceNeighbors[2]
-
-		# elif numberOfNeighbors == 2:
-		# 	if distance1_3D<distance2_3D:
-		# 		nextFace = selectedFaceNeighbors[0]
-		# 	else:
-		# 		nextFace = selectedFaceNeighbors[1]
-
-
-
-		# if numberOfNeighbors == 3:
-		# 	if nextFace == selectedFaceNeighbors[0] and self.polygons[selectedFaceNeighbors[0]].selected == True:
-		# 		print "case1"
-		# 		if distance2_3D<distance3_3D and self.polygons[selectedFaceNeighbors[1]].selected != True: 
-		# 			nextFace = selectedFaceNeighbors[1]
-		# 		elif self.polygons[selectedFaceNeighbors[2]].selected != True:
-		# 			nextFace = selectedFaceNeighbors[2]
-		# 		else:
-		# 			print "no solution"
-
-		# 	elif nextFace == selectedFaceNeighbors[1] and self.polygons[selectedFaceNeighbors[1]].selected == True:
-		# 		print "case2"
-		# 		if distance1_3D<distance3_3D and self.polygons[selectedFaceNeighbors[0]].selected != True: 
-		# 			nextFace = selectedFaceNeighbors[0]
-		# 		elif self.polygons[selectedFaceNeighbors[2]].selected != True:
-		# 			nextFace = selectedFaceNeighbors[2]
-		# 		else:
-		# 			print "no solution"
-
-		# 	elif nextFace == selectedFaceNeighbors[2] and self.polygons[selectedFaceNeighbors[2]].selected == True:
-		# 		print "case3"
-		# 		if distance1_3D<distance2_3D and self.polygons[selectedFaceNeighbors[0]].selected != True: 
-		# 			nextFace = selectedFaceNeighbors[0]
-		# 		elif self.polygons[selectedFaceNeighbors[1]].selected != True:
-		# 			nextFace = selectedFaceNeighbors[1]
-		# 		else:
-		# 			print "no solution"
-
-		# elif numberOfNeighbors == 2:
-		# 	if nextFace == selectedFaceNeighbors[0] and self.polygons[selectedFaceNeighbors[0]].selected == True:
-		# 		print "case4"
-		# 		if self.polygons[selectedFaceNeighbors[1]].selected != True:
-		# 			nextFace = selectedFaceNeighbors[1]
-		# 	elif nextFace == selectedFaceNeighbors[1] and self.polygons[selectedFaceNeighbors[1]].selected == True:
-		# 		print "case5"
-		# 		if self.polygons[selectedFaceNeighbors[0]].selected != True:
-		# 			nextFace = selectedFaceNeighbors[0]
-
-		# self.polygons[nextFace].selected = True
 		return nextVertex
 
 	def selectEdges(self, selectedVertices):
@@ -586,23 +498,51 @@ class GeometryData:
 
 		selectdPolygons = []
 
-		for index in range(0,len(selectedVertices)):
+		for currentVertex in range(0,len(selectedVertices-1)):
 
-			connectedPolygons = self.vertex[selectedVertices[index]].connectedFaces
 
-			for polygon in connectedPolygons:
+
+			connectedPolygons = self.vertex[selectedVertices[currentVertex]].connectedFaces
+			print "vertex selected: ", self.vertex[selectedVertices[currentVertex]].position.x
+			for neighborPoly in connectedPolygons:
 				if os.path.exists("c:/break"): break
-				print "centroid: ", self.polygons[polygon].position.y
-				print "vertex: ", self.vertex[selectedVertices[index]].position.y
+				
+				CN0 = self.vertex[self.polygons[neighborPoly].vertices[0]].position-self.vertex[selectedVertices[currentVertex]].position
+				CN1 = self.vertex[self.polygons[neighborPoly].vertices[1]].position-self.vertex[selectedVertices[currentVertex]].position
+				CN2 = self.vertex[self.polygons[neighborPoly].vertices[2]].position-self.vertex[selectedVertices[currentVertex]].position
 
-				if self.polygons[polygon].position.y > self.vertex[selectedVertices[index]].position.y and self.polygons[polygon].selected == False :
-					print "polygon index ",polygon
-					print "normal", self.polygons[polygon].normal.y
-					self.polygons[polygon].selected = True
-					selectdPolygons.append(polygon)
+				if CN0 > 0 and CN1 > 0:
+					CN0_Magnitude = math.sqrt(math.pow(CN0.x,2)+math.pow(CN0.z,2))
+					CN1_Magnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
+					dotProduct = dotProduct2D(CN0,CN1)
+				if CN1 > 0:
+					neighborMagnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
+				if CN2 > 0:
+					neighborMagnitude = math.sqrt(math.pow(CN2.x,2)+math.pow(CN2.z,2))
+
+				
+				#vertex som spänner upp ett anslutande polygon
+
+				currentVertex.position
+
+				xDistance1 = abs(self.vertex[self.polygons[neighborPoly].vertices[0]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
+				xDistance2 = abs(self.vertex[self.polygons[neighborPoly].vertices[1]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
+				xDistance3 = abs(self.vertex[self.polygons[neighborPoly].vertices[2]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
+				print "xPos1", xDistance1
+				print "xPos2", xDistance2
+				print "xPos3", xDistance3
+				tolerance = 10
+				if abs(self.polygons[neighborPoly].position.x -self.vertex[selectedVertices[currentVertex]].position.x)< tolerance:
+					if self.polygons[neighborPoly].selected == False and self.polygons[neighborPoly].position.y > self.vertex[selectedVertices[currentVertex]].position.y :
+						self.polygons[neighborPoly].selected = True
+						selectdPolygons.append(neighborPoly)
 
 
 		return selectdPolygons
+
+	def dotProduct2D(self,poit1,point2):
+
+		return poit1.x*point2.x+poit1.z*point2.z
 	
 	def dotProduct(self,poit1,point2):
 
