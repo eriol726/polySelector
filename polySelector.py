@@ -363,34 +363,36 @@ class GeometryData:
 			
 			
 		
-		# # print "positiv z-sträcka"
+		print "positiv z-sträcka"
 		selectedFaces.append(thirdIndex)
-		# axis = 'z'
-		# index += 1
-		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
-		# while currentIndex != fourthIndex:
-		# 	if os.path.exists("c:/break"): break
-		# 	if currentIndex == fourthIndex:
-		# 		print "found" 
-		# 	selectedFaces.append(currentIndex)
-		# 	index += 1
-		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		axis = 'z'
+		index += 1
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
+		while currentIndex != fourthIndex:
+			if os.path.exists("c:/break"): break
+			if currentIndex == fourthIndex:
+				print "found" 
+			selectedFaces.append(currentIndex)
+			index += 1
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 			
 
-		# # print "positiv x-sträcka"
-		# selectedFaces.append(fourthIndex)
-		# axis = 'x'
-		# index += 1
-		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
-		# while currentIndex != startIndex:
-		# 	if os.path.exists("c:/break"): break
-		# 	if currentIndex == startIndex:
-		# 		print "found"
-		# 	selectedFaces.append(currentIndex)
-		# 	index += 1
-		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+		# print "positiv x-sträcka"
+		selectedFaces.append(fourthIndex)
+		axis = 'x'
+		index += 1
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
+		while currentIndex != startIndex:
+			if os.path.exists("c:/break"): break
+			if currentIndex == startIndex:
+				print "found"
+			selectedFaces.append(currentIndex)
+			index += 1
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, startIndex,selectedFaces[-2])
 			
-			
+		selectedFaces.append(startIndex)
+		axis = 'x'
+		index += 1
 
 		return selectedFaces
 
@@ -509,6 +511,7 @@ class GeometryData:
 		cornerIds.append(secondIndex)
 		cornerIds.append(thirdIndex)
 		cornerIds.append(fourthIndex)
+		cornerIds.append(startIndex)
 
 		selectdPolygons = []
 		targetVertex1=self.vertex[startIndex].position
@@ -519,7 +522,8 @@ class GeometryData:
 		print "targetVertex1", targetIds[1]
 		print "targetVertex2", targetIds[0]
 
-		cornerLength = 3
+
+		cornerLength = 5
 		i=0
 		for cornerId in range(0,cornerLength-1):
 			startCorner = cornerIds[cornerId]
@@ -528,16 +532,24 @@ class GeometryData:
 			startCornerPos = self.vertex[startCorner].position
 			endCornerPos = self.vertex[endCorner].position
 
-			print "startCorner", startCorner
-			print "endCorner", endCorner
-
 			if cornerId == 0:
 				startCornerPos.x=startCornerPos.x+20
 				endCornerPos.x=endCornerPos.x+20
+				sign = 1
 			if cornerId == 1:
-				startCornerPos.z=startCornerPos.z-20
-				endCornerPos.z=endCornerPos.z-20
+				startCornerPos.z=startCornerPos.z-40
+				endCornerPos.z=endCornerPos.z-40
+				sign = 1
+			if cornerId == 2:
+				startCornerPos.x=startCornerPos.x-40
+				endCornerPos.x=endCornerPos.x-40
+				sign = 1
+			if cornerId == 3:
+				startCornerPos.z=startCornerPos.z+20
+				endCornerPos.z=endCornerPos.z+20
+				sign = -1
 
+			print cornerId
 
 			
 			while selectedVertices[i] != endCorner:
@@ -550,19 +562,19 @@ class GeometryData:
 					if os.path.exists("c:/break"): break
 					
 
-					# vtx1 = self.vertex[self.polygons[connectedPoly].vertices[0]].position
-					# vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
-					# vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
+					vtx1 = self.vertex[self.polygons[connectedPoly].vertices[0]].position
+					vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
+					vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
 
 
 					isOutside1 = False
 					isOutside2 = False
 					isOutside3 = False
-					if self.isOutside(startCornerPos,endCornerPos, vtx1):
+					if self.isOutside(startCornerPos,endCornerPos, vtx1, sign):
 						isOutside1 = True
-					if self.isOutside(startCornerPos,endCornerPos, vtx2):
+					if self.isOutside(startCornerPos,endCornerPos, vtx2, sign):
 						isOutside2 = True
-					if self.isOutside(startCornerPos,endCornerPos, vtx3):
+					if self.isOutside(startCornerPos,endCornerPos, vtx3, sign):
 						isOutside3 = True
 
 
@@ -578,8 +590,11 @@ class GeometryData:
 
 		return selectdPolygons
 	# if the sign/value is positive it returns true, the point is outside the building 
-	def	isOutside(self,pointA, pointB, pointC):
-	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
+	def	isOutside(self,pointA, pointB, pointC, sign):
+		if sign == 1:
+			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) > 0
+		elif sign == -1:
+			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
 
 	def dotProduct2D(self,poit1,point2):
 
