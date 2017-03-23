@@ -37,7 +37,7 @@ class polySelector:
 
 		targetIds = self.getCornerPolygonIds()
 		poly_ids = self.geometryData.surround_building(targetIds)
-		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids)
+		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,targetIds)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -306,14 +306,8 @@ class GeometryData:
 
 	def surround_building(self,targetIds):
 
-		neighborFaces = []
 		selectedFaces = []
 
-
-		# poly_selectedList=[{'id':targetIds[0], 'x':self.polygons[targetIds[0]].polyPosition.x, 'z':self.polygons[targetIds[0]].polyPosition.y },
-		# 				   {'id':targetIds[1], 'x':self.polygons[targetIds[1]].polyPosition.x, 'z':self.polygons[targetIds[1]].polyPosition.y },
-		# 				   {'id':targetIds[2], 'x':self.polygons[targetIds[2]].polyPosition.x, 'z':self.polygons[targetIds[2]].polyPosition.y },
-		# 				   {'id':targetIds[3], 'x':self.polygons[targetIds[3]].polyPosition.x, 'z':self.polygons[targetIds[3]].polyPosition.y }]
 
 		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
 						   {'id':targetIds[1], 'x':self.vertex[targetIds[1]].position.x, 'z':self.vertex[targetIds[1]].position.z },
@@ -342,13 +336,13 @@ class GeometryData:
 		index = 0
 
 		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, -1)
-		for index2 in range(1, 4):
+		while currentIndex != secondIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == secondIndex:
 				print "found"
 			selectedFaces.append(currentIndex)
-			#index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index2], axis, secondIndex, selectedFaces[-2])
+			index += 1
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, secondIndex, selectedFaces[-2])
 			
 			
 		
@@ -441,7 +435,7 @@ class GeometryData:
 			neighborMagnitude = math.sqrt(math.pow(CN.x,2)+math.pow(CN.y,2)+math.pow(CN.z,2))
 
 			if neighborMagnitude == 0:
-
+				print "neighborMagnitude", neighborMagnitude
 				foundIndex = i
 				break
 
@@ -494,51 +488,99 @@ class GeometryData:
 
 			#for edges in connectedEdges:
 
-	def selectPolygonsBorder(self, selectedVertices):
+	def selectPolygonsBorder(self, selectedVertices, targetIds):
+
+		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
+						   {'id':targetIds[1], 'x':self.vertex[targetIds[1]].position.x, 'z':self.vertex[targetIds[1]].position.z },
+						   {'id':targetIds[2], 'x':self.vertex[targetIds[2]].position.x, 'z':self.vertex[targetIds[2]].position.z },
+						   {'id':targetIds[3], 'x':self.vertex[targetIds[3]].position.x, 'z':self.vertex[targetIds[3]].position.z }]
+		
+		#sorted(poly_selectedList, key=lambda k: k['x'])
+
+		poly_selectedList.sort(key=lambda x: (-x['x'],x['z']))
+
+		startIndex = poly_selectedList[0]["id"]
+		secondIndex = poly_selectedList[1]["id"]
+		thirdIndex = poly_selectedList[3]["id"]
+		fourthIndex = poly_selectedList[2]["id"]
 
 		selectdPolygons = []
+		targetVertex1=self.vertex[targetIds[0]].position
+		targetVertex2=self.vertex[targetIds[1]].position
+		targetVertex1.x=targetVertex1.x+20
+		targetVertex2.x=targetVertex2.x+20
 
-		for currentVertex in range(0,len(selectedVertices-1)):
+		print "targetVertex1", targetIds[1]
+		print "targetVertex2", targetIds[0]
+
+		# freeAreaRight1 = self.vertex[selectedVertices[targetIds[0]].position
+		# freeAreaRight1.x = freeAreaRight1.x +10
+		# freeAreaRight2 = freeAreaRight1
+		# freeAreaRight2.x = freeAreaRight1.x+60
+		# freeAreaRight2.z = freeAreaRight1.z+60
+		# freeAreaRight4 = self.vertex[selectedVertices[targetIds[1]].position
+		# freeAreaRight4.x = freeAreaRight4 +10
+		# freeAreaRight3 = freeAreaRight4
+		# freeAreaRight3.x = freeAreaRight4.x+60
+		# freeAreaRight3.z = freeAreaRight4.y-60
+
+
+		for currentVertex in selectedVertices:
 
 
 
-			connectedPolygons = self.vertex[selectedVertices[currentVertex]].connectedFaces
-			print "vertex selected: ", self.vertex[selectedVertices[currentVertex]].position.x
-			for neighborPoly in connectedPolygons:
+			connectedPolygons = self.vertex[currentVertex].connectedFaces
+			print "vertex selected: ", self.vertex[currentVertex].position.x
+			for connectedPoly in connectedPolygons:
 				if os.path.exists("c:/break"): break
 				
-				CN0 = self.vertex[self.polygons[neighborPoly].vertices[0]].position-self.vertex[selectedVertices[currentVertex]].position
-				CN1 = self.vertex[self.polygons[neighborPoly].vertices[1]].position-self.vertex[selectedVertices[currentVertex]].position
-				CN2 = self.vertex[self.polygons[neighborPoly].vertices[2]].position-self.vertex[selectedVertices[currentVertex]].position
+				print "currentVertex", currentVertex
+				vtx1 = self.vertex[self.polygons[connectedPoly].vertices[0]].position
+				vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
+				vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
 
-				if CN0 > 0 and CN1 > 0:
-					CN0_Magnitude = math.sqrt(math.pow(CN0.x,2)+math.pow(CN0.z,2))
-					CN1_Magnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
-					dotProduct = dotProduct2D(CN0,CN1)
-				if CN1 > 0:
-					neighborMagnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
-				if CN2 > 0:
-					neighborMagnitude = math.sqrt(math.pow(CN2.x,2)+math.pow(CN2.z,2))
+				# print "selected+1",currentVertex
+				# print "connected0",self.polygons[connectedPoly].vertices[0]
+				# print "connected1",self.polygons[connectedPoly].vertices[1]
+				# print "connected2",self.polygons[connectedPoly].vertices[2]
+
+				isOutside1 = False
+				isOutside2 = False
+				isOutside3 = False
+				if self.isOutside(targetVertex1,targetVertex2, vtx1):
+					isOutside1 = True
+				if self.isOutside(targetVertex1,targetVertex2, vtx2):
+					isOutside2 = True
+				if self.isOutside(targetVertex1,targetVertex2, vtx3):
+					isOutside3 = True
+				# CN0_Magnitude = math.sqrt(math.pow(CN0.x,2)+math.pow(CN0.z,2))
+				# CN1_Magnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
+				# CN2_Magnitude = math.sqrt(math.pow(CN2.x,2)+math.pow(CN2.z,2))
+
+
 
 				
 				#vertex som spänner upp ett anslutande polygon
 
-				currentVertex.position
+				
+				# print "CN0_Magnitude", CN0
+				# print "CN1_Magnitude", CN1
+				# print "CN2_Magnitude", CN2
 
-				xDistance1 = abs(self.vertex[self.polygons[neighborPoly].vertices[0]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
-				xDistance2 = abs(self.vertex[self.polygons[neighborPoly].vertices[1]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
-				xDistance3 = abs(self.vertex[self.polygons[neighborPoly].vertices[2]].position.x - self.vertex[selectedVertices[currentVertex+1]].position.x)
-				print "xPos1", xDistance1
-				print "xPos2", xDistance2
-				print "xPos3", xDistance3
-				tolerance = 10
-				if abs(self.polygons[neighborPoly].position.x -self.vertex[selectedVertices[currentVertex]].position.x)< tolerance:
-					if self.polygons[neighborPoly].selected == False and self.polygons[neighborPoly].position.y > self.vertex[selectedVertices[currentVertex]].position.y :
-						self.polygons[neighborPoly].selected = True
-						selectdPolygons.append(neighborPoly)
+				tolerance = 40
+				if isOutside1 == True or isOutside2 == True or isOutside3 == True:
+					print "outside"
+				else:
+					print "inside"
+					if self.polygons[connectedPoly].selected == False and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
+						self.polygons[connectedPoly].selected = True
+						selectdPolygons.append(connectedPoly)
 
 
 		return selectdPolygons
+
+	def	isOutside(self,pointA, pointB, pointC):
+	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
 
 	def dotProduct2D(self,poit1,point2):
 
