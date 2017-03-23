@@ -348,23 +348,23 @@ class GeometryData:
 		
 		# # print "negativ x-sträcka"
 		selectedFaces.append(secondIndex)
-		# axis = 'x'
-		# index += 1
-		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
-		# while currentIndex != thirdIndex:
-		# 	if os.path.exists("c:/break"): break
-		# 	if currentIndex == thirdIndex:
-		# 		print "found"
-		# 	selectedFaces.append(currentIndex)
-		# 	index += 1
-		# 	currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		axis = 'x'
+		index += 1
+		currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
+		while currentIndex != thirdIndex:
+			if os.path.exists("c:/break"): break
+			if currentIndex == thirdIndex:
+				print "found"
+			selectedFaces.append(currentIndex)
+			index += 1
+			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
 			
 			
 			
 			
 		
 		# # print "positiv z-sträcka"
-		# selectedFaces.append(thirdIndex)
+		selectedFaces.append(thirdIndex)
 		# axis = 'z'
 		# index += 1
 		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
@@ -519,50 +519,67 @@ class GeometryData:
 		print "targetVertex1", targetIds[1]
 		print "targetVertex2", targetIds[0]
 
-
-
+		cornerLength = 3
 		i=0
-		while selectedVertices[i] != cornerIds[1]:
+		for cornerId in range(0,cornerLength-1):
+			startCorner = cornerIds[cornerId]
+			endCorner = cornerIds[cornerId+1]
+
+			startCornerPos = self.vertex[startCorner].position
+			endCornerPos = self.vertex[endCorner].position
+
+			print "startCorner", startCorner
+			print "endCorner", endCorner
+
+			if cornerId == 0:
+				startCornerPos.x=startCornerPos.x+20
+				endCornerPos.x=endCornerPos.x+20
+			if cornerId == 1:
+				startCornerPos.z=startCornerPos.z-20
+				endCornerPos.z=endCornerPos.z-20
 
 
-			currentVertex = selectedVertices[i]
-			connectedPolygons = self.vertex[currentVertex].connectedFaces
-			print "vertex selected: ", self.vertex[currentVertex].position.x
-			for connectedPoly in connectedPolygons:
-				if os.path.exists("c:/break"): break
-				
-				print "currentVertex", currentVertex
-				vtx1 = self.vertex[self.polygons[connectedPoly].vertices[0]].position
-				vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
-				vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
+			
+			while selectedVertices[i] != endCorner:
 
 
-				isOutside1 = False
-				isOutside2 = False
-				isOutside3 = False
-				if self.isOutside(targetVertex1,targetVertex2, vtx1):
-					isOutside1 = True
-				if self.isOutside(targetVertex1,targetVertex2, vtx2):
-					isOutside2 = True
-				if self.isOutside(targetVertex1,targetVertex2, vtx3):
-					isOutside3 = True
+				currentVertex = selectedVertices[i]
+				connectedPolygons = self.vertex[currentVertex].connectedFaces
+
+				for connectedPoly in connectedPolygons:
+					if os.path.exists("c:/break"): break
+					
+
+					# vtx1 = self.vertex[self.polygons[connectedPoly].vertices[0]].position
+					# vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
+					# vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
 
 
-				tolerance = 40
-				if isOutside1 == True or isOutside2 == True or isOutside3 == True:
-					print "outside"
-				else:
-					print "inside"
-					if self.polygons[connectedPoly].selected == False and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
-						self.polygons[connectedPoly].selected = True
-						selectdPolygons.append(connectedPoly)
-			i = i+1
+					isOutside1 = False
+					isOutside2 = False
+					isOutside3 = False
+					if self.isOutside(startCornerPos,endCornerPos, vtx1):
+						isOutside1 = True
+					if self.isOutside(startCornerPos,endCornerPos, vtx2):
+						isOutside2 = True
+					if self.isOutside(startCornerPos,endCornerPos, vtx3):
+						isOutside3 = True
+
+
+					tolerance = 40
+					if isOutside1 == True or isOutside2 == True or isOutside3 == True:
+						print "outside"
+					else:
+						if self.polygons[connectedPoly].selected == False and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
+							self.polygons[connectedPoly].selected = True
+							selectdPolygons.append(connectedPoly)
+				i = i+1
 
 
 		return selectdPolygons
 	# if the sign/value is positive it returns true, the point is outside the building 
 	def	isOutside(self,pointA, pointB, pointC):
-	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) > 0
+	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
 
 	def dotProduct2D(self,poit1,point2):
 
