@@ -347,7 +347,7 @@ class GeometryData:
 			
 		
 		# # print "negativ x-sträcka"
-		# selectedFaces.append(secondIndex)
+		selectedFaces.append(secondIndex)
 		# axis = 'x'
 		# index += 1
 		# currentIndex = self.getDirectionalFace(selectedFaces[index], axis, thirdIndex, selectedFaces[-2])
@@ -504,31 +504,28 @@ class GeometryData:
 		thirdIndex = poly_selectedList[3]["id"]
 		fourthIndex = poly_selectedList[2]["id"]
 
+		cornerIds = []
+		cornerIds.append(startIndex)
+		cornerIds.append(secondIndex)
+		cornerIds.append(thirdIndex)
+		cornerIds.append(fourthIndex)
+
 		selectdPolygons = []
-		targetVertex1=self.vertex[targetIds[0]].position
-		targetVertex2=self.vertex[targetIds[1]].position
+		targetVertex1=self.vertex[startIndex].position
+		targetVertex2=self.vertex[secondIndex].position
 		targetVertex1.x=targetVertex1.x+20
 		targetVertex2.x=targetVertex2.x+20
 
 		print "targetVertex1", targetIds[1]
 		print "targetVertex2", targetIds[0]
 
-		# freeAreaRight1 = self.vertex[selectedVertices[targetIds[0]].position
-		# freeAreaRight1.x = freeAreaRight1.x +10
-		# freeAreaRight2 = freeAreaRight1
-		# freeAreaRight2.x = freeAreaRight1.x+60
-		# freeAreaRight2.z = freeAreaRight1.z+60
-		# freeAreaRight4 = self.vertex[selectedVertices[targetIds[1]].position
-		# freeAreaRight4.x = freeAreaRight4 +10
-		# freeAreaRight3 = freeAreaRight4
-		# freeAreaRight3.x = freeAreaRight4.x+60
-		# freeAreaRight3.z = freeAreaRight4.y-60
 
 
-		for currentVertex in selectedVertices:
+		i=0
+		while selectedVertices[i] != cornerIds[1]:
 
 
-
+			currentVertex = selectedVertices[i]
 			connectedPolygons = self.vertex[currentVertex].connectedFaces
 			print "vertex selected: ", self.vertex[currentVertex].position.x
 			for connectedPoly in connectedPolygons:
@@ -539,10 +536,6 @@ class GeometryData:
 				vtx2 = self.vertex[self.polygons[connectedPoly].vertices[1]].position
 				vtx3 = self.vertex[self.polygons[connectedPoly].vertices[2]].position
 
-				# print "selected+1",currentVertex
-				# print "connected0",self.polygons[connectedPoly].vertices[0]
-				# print "connected1",self.polygons[connectedPoly].vertices[1]
-				# print "connected2",self.polygons[connectedPoly].vertices[2]
 
 				isOutside1 = False
 				isOutside2 = False
@@ -553,19 +546,7 @@ class GeometryData:
 					isOutside2 = True
 				if self.isOutside(targetVertex1,targetVertex2, vtx3):
 					isOutside3 = True
-				# CN0_Magnitude = math.sqrt(math.pow(CN0.x,2)+math.pow(CN0.z,2))
-				# CN1_Magnitude = math.sqrt(math.pow(CN1.x,2)+math.pow(CN1.z,2))
-				# CN2_Magnitude = math.sqrt(math.pow(CN2.x,2)+math.pow(CN2.z,2))
 
-
-
-				
-				#vertex som spänner upp ett anslutande polygon
-
-				
-				# print "CN0_Magnitude", CN0
-				# print "CN1_Magnitude", CN1
-				# print "CN2_Magnitude", CN2
 
 				tolerance = 40
 				if isOutside1 == True or isOutside2 == True or isOutside3 == True:
@@ -575,12 +556,13 @@ class GeometryData:
 					if self.polygons[connectedPoly].selected == False and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
 						self.polygons[connectedPoly].selected = True
 						selectdPolygons.append(connectedPoly)
+			i = i+1
 
 
 		return selectdPolygons
-
+	# if the sign/value is positive it returns true, the point is outside the building 
 	def	isOutside(self,pointA, pointB, pointC):
-	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
+	    return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) > 0
 
 	def dotProduct2D(self,poit1,point2):
 
