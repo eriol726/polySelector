@@ -352,7 +352,7 @@ class GeometryData:
 			
 			
 		
-		# # print "negativ x-sträcka"
+		print "negativ x-sträcka"
 		selectedFaces.append(secondIndex)
 		axis = 'x'
 		index += 1
@@ -383,7 +383,7 @@ class GeometryData:
 			currentIndex = self.getDirectionalFace(selectedFaces[index], axis, fourthIndex, selectedFaces[-2])
 			
 
-		# print "positiv x-sträcka"
+		print "positiv x-sträcka"
 		selectedFaces.append(fourthIndex)
 		axis = 'x'
 		index += 1
@@ -555,7 +555,7 @@ class GeometryData:
 				endCornerPos.z=endCornerPos.z+20
 				sign = 1
 
-			print cornerId
+			print "cornerId",cornerId
 
 			
 			while selectedVertices[i] != endCorner:
@@ -597,25 +597,27 @@ class GeometryData:
 
 		self.polygonBorder.append(targetPolyIds[0])
 
+		connectedFaces = self.polygons[targetPolyIds[0]].connectedFaces
 
-		for i in range(0,4):
+
+		for i in range(0,80):
 			if os.path.exists("c:/break"): break
-			connectedVertices = self.growSelection(connectedVertices)
+			connectedFaces = self.growSelection(connectedFaces)
 
 		return self.polygonBorder
 
-	def growSelection(self, connectedVertices):
+	def growSelection(self, connectedFaces):
 		connectedVertices3 = []
 
-		for index in connectedVertices:
-			connectedFaces = self.vertex[index].connectedFaces
-			for face in connectedFaces:
-				connectedVertices3.append(self.polygons[face].vertices[0])
-				connectedVertices3.append(self.polygons[face].vertices[1])
-				connectedVertices3.append(self.polygons[face].vertices[2])
-				if self.polygons[face].selected == False:
-					self.polygons[face].selected = True
-					self.polygonBorder.append(face)
+		for index in connectedFaces:
+			
+
+			if self.polygons[index].selected == False:
+				connectedVertices3.append(self.polygons[index].connectedFaces[0])
+				connectedVertices3.append(self.polygons[index].connectedFaces[1])
+				connectedVertices3.append(self.polygons[index].connectedFaces[2])
+				self.polygons[index].selected = True
+				self.polygonBorder.append(index)
 
 		return	connectedVertices3
 
