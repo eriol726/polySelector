@@ -8,6 +8,7 @@ class polySelector:
 
 #----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
+
 		self.targetGeom = []
 		self.geometryData = GeometryData()
 		self.geometryData.setPolyData()
@@ -35,9 +36,9 @@ class polySelector:
 		targetIds = []
 		poly_ids = []
 
-		targetIds = self.getCornerPolygonIds()
+		targetIds, targetPolyIds = self.getCornerPolygonIds()
 		poly_ids = self.geometryData.surround_building(targetIds)
-		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,targetIds)
+		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,targetIds, targetPolyIds)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -130,9 +131,9 @@ class polySelector:
 			if compType == om.MFn.kMeshPolygonComponent:
 				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
-				targetIds = om.MIntArray()
+				targetPolyIds = om.MIntArray()
 				# äntligen får vi ut samtliga id för de markerade polygonen
-				compListFn.getElements(targetIds)
+				compListFn.getElements(targetPolyIds)
 
 			selListIter.next()
 
@@ -140,7 +141,11 @@ class polySelector:
 			print "too many polygons selected"
 			return
 
-		return targetIds
+		if len(targetPolyIds) == 0:
+			print "select one polygon"
+			return
+
+		return targetIds, targetPolyIds
 
 	
 
@@ -154,6 +159,7 @@ class GeometryData:
 		self.polygons = []
 		self.edges = []
 		self.vertex = []
+		self.polygonBorder = []
 
 	def printMatrix(self,matrix):
 		endStr = '\n'
@@ -490,7 +496,7 @@ class GeometryData:
 
 			#for edges in connectedEdges:
 
-	def selectPolygonsBorder(self, selectedVertices, targetIds):
+	def selectPolygonsBorder(self, selectedVertices, targetIds, targetPolyIds):
 
 		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
 						   {'id':targetIds[1], 'x':self.vertex[targetIds[1]].position.x, 'z':self.vertex[targetIds[1]].position.z },
@@ -513,7 +519,7 @@ class GeometryData:
 		cornerIds.append(fourthIndex)
 		cornerIds.append(startIndex)
 
-		selectdPolygons = []
+		polygonBorder = []
 		targetVertex1=self.vertex[startIndex].position
 		targetVertex2=self.vertex[secondIndex].position
 		targetVertex1.x=targetVertex1.x+20
@@ -547,7 +553,7 @@ class GeometryData:
 			if cornerId == 3:
 				startCornerPos.z=startCornerPos.z+20
 				endCornerPos.z=endCornerPos.z+20
-				sign = -1
+				sign = 1
 
 			print cornerId
 
@@ -570,25 +576,49 @@ class GeometryData:
 					isOutside1 = False
 					isOutside2 = False
 					isOutside3 = False
-					if self.isOutside(startCornerPos,endCornerPos, vtx1, sign):
-						isOutside1 = True
-					if self.isOutside(startCornerPos,endCornerPos, vtx2, sign):
-						isOutside2 = True
-					if self.isOutside(startCornerPos,endCornerPos, vtx3, sign):
-						isOutside3 = True
+					# if self.isOutside(startCornerPos,endCornerPos, vtx1, sign):
+					# 	isOutside1 = True
+					# if self.isOutside(startCornerPos,endCornerPos, vtx2, sign):
+					# 	isOutside2 = True
+					# if self.isOutside(startCornerPos,endCornerPos, vtx3, sign):
+					# 	isOutside3 = True
 
 
 					tolerance = 40
 					if isOutside1 == True or isOutside2 == True or isOutside3 == True:
 						print "outside"
 					else:
-						if self.polygons[connectedPoly].selected == False and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
+						if self.polygons[connectedPoly].selected == False: # and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
 							self.polygons[connectedPoly].selected = True
-							selectdPolygons.append(connectedPoly)
+							self.polygonBorder.append(connectedPoly)
 				i = i+1
+		allFaces = []
+		connectedVertices = self.polygons[targetPolyIds[0]].vertices
+
+		self.polygonBorder.append(targetPolyIds[0])
 
 
-		return selectdPolygons
+		for i in range(0,4):
+			if os.path.exists("c:/break"): break
+			connectedVertices = self.growSelection(connectedVertices)
+
+		return self.polygonBorder
+
+	def growSelection(self, connectedVertices):
+		connectedVertices3 = []
+
+		for index in connectedVertices:
+			connectedFaces = self.vertex[index].connectedFaces
+			for face in connectedFaces:
+				connectedVertices3.append(self.polygons[face].vertices[0])
+				connectedVertices3.append(self.polygons[face].vertices[1])
+				connectedVertices3.append(self.polygons[face].vertices[2])
+				if self.polygons[face].selected == False:
+					self.polygons[face].selected = True
+					self.polygonBorder.append(face)
+
+		return	connectedVertices3
+
 	# if the sign/value is positive it returns true, the point is outside the building 
 	def	isOutside(self,pointA, pointB, pointC, sign):
 		if sign == 1:
