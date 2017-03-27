@@ -3,12 +3,13 @@ import maya.cmds as cmds
 import math
 import os
 from operator import itemgetter, attrgetter, methodcaller
+from priodict import priorityDictionary
 
 class polySelector:
 
 #----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
-
+		self.targetIds = 0
 		self.targetGeom = []
 		self.geometryData = GeometryData()
 		self.geometryData.setPolyData()
@@ -31,9 +32,9 @@ class polySelector:
 	def select(self):
 
 		#set_polyData()
-		targetIds = []
+		
 		poly_ids = []
-
+		targetIds = []
 		targetIds, centerPolygon = self.getCornerPolygonIds()
 		poly_ids, cornerVertex = self.geometryData.surroundBuilding(targetIds)
 		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
@@ -138,11 +139,15 @@ class polySelector:
 		if len(targetIds) > 10:
 			print "too many polygons selected"
 			return
+		elif len(targetIds) == 0:
+			print "no vertices are selected"
 
 		if len(targetPolyIds) == 0:
 			print "select one polygon"
 			return
 
+
+		print "targetIds length", targetIds
 		return targetIds, targetPolyIds
 
 	
@@ -231,7 +236,7 @@ class GeometryData:
 		dummy = om.MScriptUtil()
 		edgeFaces = om.MIntArray()
 		dummyIntPtr = dummy.asIntPtr()
-		self.polyData = []
+
 		 #MStatus status
 		# targetGeom är den markerade meshen
 
@@ -286,7 +291,6 @@ class GeometryData:
 		while not faceIter.isDone():
 			#print "index: ", faceIter.index()
 			#cfLength = edgeIter.getConnectedFaces(connectedFaces)
-			polyData = self.polygons[i]
 			self.polygons[i].normalAngel = 5.0
 
 
@@ -314,7 +318,7 @@ class GeometryData:
 
 	def surroundBuilding(self,targetIds):
 
-		selectedFaces = []
+		selectedVertices = []
 
 
 		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
@@ -344,80 +348,80 @@ class GeometryData:
 		print "fourthIndex", fourthIndex
 
 		#lägger till det först markeade facet
-		selectedFaces.append(startIndex)
+		selectedVertices.append(startIndex)
 
 		print "negativ z-sträcka"
 		axis = 'z'
 		index = 0
 
-		currentIndex = self.getDirectionalFace(selectedFaces[index],secondIndex)
+		currentIndex = self.getDirectionalFace(selectedVertices[index],secondIndex)
 		while currentIndex != secondIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == secondIndex:
 				print "found"
-			selectedFaces.append(currentIndex)
+			selectedVertices.append(currentIndex)
 			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index],secondIndex)
+			currentIndex = self.getDirectionalFace(selectedVertices[index],secondIndex)
 			
 			
 		
 		print "negativ x-sträcka"
-		selectedFaces.append(secondIndex)
+		selectedVertices.append(secondIndex)
 		axis = 'x'
 		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index],thirdIndex)
+		currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
 		while currentIndex != thirdIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == thirdIndex:
 				print "found"
-			selectedFaces.append(currentIndex)
+			selectedVertices.append(currentIndex)
 			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index],thirdIndex)
+			currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
 			
 			
 			
 			
 		
 		print "positiv z-sträcka"
-		selectedFaces.append(thirdIndex)
+		selectedVertices.append(thirdIndex)
 		axis = 'z'
 		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index],fourthIndex)
+		currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
 		while currentIndex != fourthIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == fourthIndex:
 				print "found" 
-			selectedFaces.append(currentIndex)
+			selectedVertices.append(currentIndex)
 			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index],fourthIndex)
+			currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
 			
 
 		print "positiv x-sträcka"
-		selectedFaces.append(fourthIndex)
+		selectedVertices.append(fourthIndex)
 
 		index += 1
-		currentIndex = self.getDirectionalFace(selectedFaces[index],startIndex)
+		currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
 		while currentIndex != startIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == startIndex:
 				print "found"
-			selectedFaces.append(currentIndex)
+			selectedVertices.append(currentIndex)
 			index += 1
-			currentIndex = self.getDirectionalFace(selectedFaces[index],startIndex)
+			currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
 			
-		selectedFaces.append(startIndex)
+		selectedVertices.append(startIndex)
 		axis = 'x'
 		index += 1
 
-		return selectedFaces, cornerIds
+		return selectedVertices, cornerIds
 
-	def getDirectionalFace(self, selectedFaces, endIndex):
+	def getDirectionalFace(self, selectedVertex, endIndex):
 
 
 		nextFace = -1
 
 		goalPos= self.vertex[endIndex].position
-		currentPos= self.vertex[selectedFaces].position
+		currentPos= self.vertex[selectedVertex].position
 
 
 
@@ -432,21 +436,22 @@ class GeometryData:
 			return endIndex
 
 
-		selectedVertexNeighbors = self.vertex[selectedFaces].connectedVertices
+		selectedVertexNeighbors = self.vertex[selectedVertex].connectedVertices
 
 		closestAngel = 100
 
 		foundCandidate = False
 
 		
-		for i in range(0,len(selectedVertexNeighbors)):
-			neighborPos = self.vertex[selectedVertexNeighbors[i]].position
+		for i in selectedVertexNeighbors:
+			neighborPos = self.vertex[i].position
 
 			CN = neighborPos - currentPos
 
 			neighborMagnitude = math.sqrt(math.pow(CN.x,2)+math.pow(CN.y,2)+math.pow(CN.z,2))
 
 			if neighborMagnitude == 0:
+				print "neighborMagnitude = 0"
 				foundIndex = i
 				break
 
@@ -456,42 +461,50 @@ class GeometryData:
 
 			neighborAngel = neighborAngel*(180/3.1416)
 
-			if neighborAngel < closestAngel and self.vertex[selectedVertexNeighbors[i]].selected != True:
+			if neighborAngel < closestAngel and self.vertex[i].selected != True:
 
 				foundIndex = i
 				foundCandidate = True
 				closestAngel = neighborAngel
 
-		closestDistance = -1
+
 
 		#method 2
-		closestDistance = math.sqrt(math.pow(goalPos.x-currentPos.x,2)+math.pow(neighborPos.y-currentPos.y,2)+math.pow(neighborPos.y-currentPos.z,2))
+		closestDistance = math.sqrt(math.pow(goalPos.x-currentPos.x,2)+math.pow(goalPos.z-currentPos.z,2))
 		if foundCandidate == False:
 			print "method 2"
-			for i in range(0,len(selectedVertexNeighbors)):
-				neighborPos = self.vertex[selectedVertexNeighbors[i]].position
-				neighborToGoal = math.sqrt(math.pow(goalPos.x-neighborPos.x,2)+math.pow(neighborPos.y-neighborPos.y,2)+math.pow(neighborPos.y-neighborPos.z,2))
+			for index in selectedVertexNeighbors:
+				neighborPos = self.vertex[index].position
+				neighborToGoal = math.sqrt(math.pow(goalPos.x-neighborPos.x,2)+math.pow(goalPos.z-neighborPos.z,2))
 
-				if neighborToGoal < closestDistance and self.vertex[i].selected != True:
-					foundIndex = i
+				print "distance", closestDistance , " " , neighborToGoal, "selcted: ", self.vertex[index].selected
+				if neighborToGoal < closestDistance and self.vertex[index].selected == False:
+					print "found"
+					foundIndex = index
 					foundCandidate = True
 					closestDistance = neighborToGoal
 
 		if foundCandidate == False:
-			foundIndex = selectedFaces+1
-			"nextVertex could not be found "
+			foundIndex = selectedVertexNeighbors[0]
+			print "nextVertex could not be found "
 
-		nextVertex = selectedVertexNeighbors[foundIndex]
+		print "foundIndex", foundIndex
 
-		self.vertex[nextVertex].selected = True
+		self.vertex[foundIndex].selected = True
+		
 
-		return nextVertex
+		return foundIndex
 
 	def selectPolygonsBorder(self, selectedVertices, cornerIds, centerPolygon):
 
 		self.polygonBorder = []
 		cornerLength = 5
 		i=0
+		print "first", self.vertex[cornerIds[0]].position.x, " ", self.vertex[cornerIds[0]].position.z
+		print "second", self.vertex[cornerIds[1]].position.x, " ", self.vertex[cornerIds[1]].position.z
+		print "third", self.vertex[cornerIds[2]].position.x, " ", self.vertex[cornerIds[2]].position.z
+		print "fourth", self.vertex[cornerIds[3]].position.x, " ", self.vertex[cornerIds[3]].position.z
+		print "end", self.vertex[cornerIds[4]].position.x, " ", self.vertex[cornerIds[4]].position.z
 		for cornerId in range(0,cornerLength-1):
 			startCorner = cornerIds[cornerId]
 			endCorner = cornerIds[cornerId+1]
@@ -499,21 +512,23 @@ class GeometryData:
 			startCornerPos = self.vertex[startCorner].position
 			endCornerPos = self.vertex[endCorner].position
 
+			margin = 0.1
+
 			if cornerId == 0:
-				startCornerPos.x=startCornerPos.x+20
-				endCornerPos.x=endCornerPos.x+20
+				startCornerPos.x=startCornerPos.x+margin
+				endCornerPos.x=endCornerPos.x+margin
 				sign = 1
 			if cornerId == 1:
-				startCornerPos.z=startCornerPos.z-40
-				endCornerPos.z=endCornerPos.z-40
+				startCornerPos.z=startCornerPos.z-margin
+				endCornerPos.z=endCornerPos.z-margin
 				sign = 1
 			if cornerId == 2:
-				startCornerPos.x=startCornerPos.x-40
-				endCornerPos.x=endCornerPos.x-40
+				startCornerPos.x=startCornerPos.x-margin
+				endCornerPos.x=endCornerPos.x-margin
 				sign = 1
 			if cornerId == 3:
-				startCornerPos.z=startCornerPos.z+20
-				endCornerPos.z=endCornerPos.z+20
+				startCornerPos.z=startCornerPos.z+margin
+				endCornerPos.z=endCornerPos.z+margin
 				sign = 1
 
 			print "cornerId",cornerId
@@ -547,7 +562,7 @@ class GeometryData:
 
 					tolerance = 40
 					if isOutside1 == True or isOutside2 == True or isOutside3 == True:
-						print "outside"
+						nej = 1
 					else:
 						if self.polygons[connectedPoly].selected == False: # and self.polygons[connectedPoly].position.y > self.vertex[currentVertex].position.y :
 							self.polygons[connectedPoly].selected = True
@@ -561,14 +576,16 @@ class GeometryData:
 		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
 
 
-		for i in range(0,100):
-			if os.path.exists("c:/break"): break
-			connectedFaces = self.growSelection(connectedFaces)
+		# for i in range(0,50):
+		# 	if os.path.exists("c:/break"): break
+		# 	print i
+		# 	connectedFaces = self.growSelection(connectedFaces)
 
 		return self.polygonBorder
 
 	def growSelection(self, connectedFaces):
 		connectedVertices3 = []
+
 
 		for index in connectedFaces:
 			
