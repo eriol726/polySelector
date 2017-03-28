@@ -3,7 +3,6 @@ import maya.cmds as cmds
 import math
 import os
 from operator import itemgetter, attrgetter, methodcaller
-from priodict import priorityDictionary
 
 class polySelector:
 
@@ -34,10 +33,11 @@ class polySelector:
 		#set_polyData()
 		
 		poly_ids = []
-		targetIds = []
-		targetIds, centerPolygon = self.getCornerPolygonIds()
-		poly_ids, cornerVertex = self.geometryData.surroundBuilding(targetIds)
-		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
+		vertexTargets = []
+		vertexTargets, centerPolygon = self.getCornerPolygonIds()
+		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(targetIds)
+		#poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
+		poly_ids2 = self.geometryData.selectPolygonsBorder2(vertexTargets, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -45,27 +45,28 @@ class polySelector:
 		mdag = om.MDagPath()
 		sel.getDagPath(0, mdag)
 
-		print "poly_ids: ",  poly_ids[0]
 
 		# Create an MIntArray and populate it with component ids to add to our component object
 		# MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
 		# This is where you would use your list of polyIds that you had gotten
-		#poly_ids = [faceIndex]
-		util = om.MScriptUtil()
-		util.createFromList(poly_ids, len(poly_ids))
-		ids_ptr = util.asIntPtr()
-		polyids = om.MIntArray(ids_ptr, len(poly_ids))
 
-		# Create a singleIndexedComponent of type polygon
-		mfn_components = om.MFnSingleIndexedComponent()
-		components = mfn_components.create(om.MFn.kMeshVertComponent)
-		# Add our MIntArray of ids to the component
-		mfn_components.addElements(polyids)
+		#********************
+
+			# util = om.MScriptUtil()
+			# util.createFromList(poly_ids, len(poly_ids))
+			# ids_ptr = util.asIntPtr()
+			# polyids = om.MIntArray(ids_ptr, len(poly_ids))
+
+			# # Create a singleIndexedComponent of type polygon
+			# mfn_components = om.MFnSingleIndexedComponent()
+			# components = mfn_components.create(om.MFn.kMeshVertComponent)
+			# # Add our MIntArray of ids to the component
+			# mfn_components.addElements(polyids)
 
 		to_sel = om.MSelectionList()
-		# The object the selection refers to, and the components on that object to select
-		to_sel.add(mdag, components)
-		om.MGlobal.setActiveSelectionList(to_sel)
+			# # The object the selection refers to, and the components on that object to select
+			# to_sel.add(mdag, components)
+			# om.MGlobal.setActiveSelectionList(to_sel)
 
 		#********************
 
@@ -121,9 +122,16 @@ class polySelector:
 			if compType == om.MFn.kMeshVertComponent:
 				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
-				targetIds = om.MIntArray()
+				targetVertexIds = om.MIntArray()
 				# äntligen får vi ut samtliga id för de markerade polygonen
-				compListFn.getElements(targetIds)
+				compListFn.getElements(targetVertexIds)
+
+			if compType == om.MFn.kMeshEdgeComponent:
+				# allows compListFn to query single indexed components
+				compListFn = om.MFnSingleIndexedComponent(components)
+				targetEdgeIds = om.MIntArray()
+				# äntligen får vi ut samtliga id för de markerade polygonen
+				compListFn.getElements(targetEdgeIds)
 
 
 			# kontrollerar om det finns ett polygon i komponenterna 
@@ -136,10 +144,10 @@ class polySelector:
 
 			selListIter.next()
 
-		if len(targetIds) > 10:
-			print "too many polygons selected"
-			return
-		elif len(targetIds) == 0:
+		# if len(targetIds) > 10:
+		# 	print "too many vertices selected"
+		# 	return
+		if len(targetEdgeIds) == 0:
 			print "no vertices are selected"
 
 		if len(targetPolyIds) == 0:
@@ -147,8 +155,8 @@ class polySelector:
 			return
 
 
-		print "targetIds length", targetIds
-		return targetIds, targetPolyIds
+		print "targetIds length", targetEdgeIds
+		return targetEdgeIds, targetPolyIds
 
 	
 
@@ -273,10 +281,18 @@ class GeometryData:
 
 			connectedEdges = om.MIntArray()
 			edgeIter.getConnectedEdges(connectedEdges)
-
+			
 			self.edges[i].connectedEdges = connectedEdges
 
-			self.edges[i].edgePosition = edgeIter.center()
+			connectedFaces = om.MIntArray()
+			edgeIter.getConnectedFaces(connectedFaces)
+
+			self.edges[i].connectedFaces = connectedFaces
+
+			self.edges[i].vertices.append(edgeIter.index(0))
+			self.edges[i].vertices.append(edgeIter.index(1))
+
+			self.edges[i].position = edgeIter.center()
 			#self.edges[i].numberOfNeighbors = edgeIter.numConnectedEdges()
 			i+=1
 			edgeIter.next()
@@ -495,6 +511,36 @@ class GeometryData:
 
 		return foundIndex
 
+	def selectPolygonsBorder2(self, selectedEdges, centerPolygon):
+		self.polygonBorder = []
+		for index_e in selectedEdges:
+			connectedFaces = self.edges[index_e].connectedFaces
+			
+			self.polygonBorder.append(self.polygons[connectedFaces[1]])
+			self.polygonBorder.append(self.polygons[connectedFaces[0]])
+			# for index_f0_v in range(0,3):
+			# 	if self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]] != self.edges[index_e].vertices[0] and self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]] != self.edges[index_e].vertices[1]:
+			# 		z_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.z-self.edges[index_e].position.z
+			# 		x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
+
+			# dist_f0 = math.sqrt(math.pow(x_dist_f0,2)+math.pow(z_dist_f0,2))
+
+			# for index_f1_v in range(0,3):
+			# 	if self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]] != self.edges[index_e].vertices[0] and self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]] != self.edges[index_e].vertices[1]:
+			# 		z_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.z-self.edges[index_e].position.z
+			# 		x_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.x-self.edges[index_e].position.x
+
+			# dist_f1 = math.sqrt(math.pow(x_dist_f1,2)+math.pow(z_dist_f1,2))
+
+			# if dist_f0 < dist_f1:
+			# 	self.polygonBorder.append(self.polygons[connectedFaces[0]])
+			# else:
+			# 	self.polygonBorder.append(self.polygons[connectedFaces[1]])
+
+		print "polygonBorder: ", len(self.polygonBorder)
+		return self.polygonBorder
+
+
 	def selectPolygonsBorder(self, selectedVertices, cornerIds, centerPolygon):
 
 		self.polygonBorder = []
@@ -505,6 +551,9 @@ class GeometryData:
 		print "third", self.vertex[cornerIds[2]].position.x, " ", self.vertex[cornerIds[2]].position.z
 		print "fourth", self.vertex[cornerIds[3]].position.x, " ", self.vertex[cornerIds[3]].position.z
 		print "end", self.vertex[cornerIds[4]].position.x, " ", self.vertex[cornerIds[4]].position.z
+
+		
+
 		for cornerId in range(0,cornerLength-1):
 			startCorner = cornerIds[cornerId]
 			endCorner = cornerIds[cornerId+1]
@@ -534,6 +583,7 @@ class GeometryData:
 			print "cornerId",cornerId
 
 			
+
 			while selectedVertices[i] != endCorner:
 
 
@@ -636,8 +686,10 @@ class EdgeData:
 	def __init__(self):
 		self.selected = False
 		self.normalAngel = 0.0
+		self.vertices = []
 		self.connectedEdges = []
-		self.edgePosition = om.MPoint(0,0,0)
+		self.connectedFaces = []
+		self.position = om.MPoint(0,0,0)
 		self.numberOfNeighbors = 0
 
 
