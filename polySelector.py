@@ -512,32 +512,80 @@ class GeometryData:
 		return foundIndex
 
 	def selectPolygonsBorder2(self, selectedEdges, centerPolygon):
+
 		self.polygonBorder = []
-		for index_e in selectedEdges:
+
+		print "selected edges", selectedEdges
+
+		i = 0
+
+		f0_v_pos_prev = 0
+		for index_e in selectedEdges: 
 			connectedFaces = self.edges[index_e].connectedFaces
 			
-			self.polygonBorder.append(self.polygons[connectedFaces[1]])
-			self.polygonBorder.append(self.polygons[connectedFaces[0]])
-			# for index_f0_v in range(0,3):
-			# 	if self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]] != self.edges[index_e].vertices[0] and self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]] != self.edges[index_e].vertices[1]:
-			# 		z_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.z-self.edges[index_e].position.z
-			# 		x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
 
-			# dist_f0 = math.sqrt(math.pow(x_dist_f0,2)+math.pow(z_dist_f0,2))
+			for index_f0_v in range(0,3):
+				if self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[1]:
+					z_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.z-self.edges[index_e].position.z
+					x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
+					f0_v_pos = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position
+					height_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.y
 
-			# for index_f1_v in range(0,3):
-			# 	if self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]] != self.edges[index_e].vertices[0] and self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]] != self.edges[index_e].vertices[1]:
-			# 		z_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.z-self.edges[index_e].position.z
-			# 		x_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.x-self.edges[index_e].position.x
+			dist_f0 = math.sqrt(math.pow(x_dist_f0,2)+math.pow(z_dist_f0,2))
 
-			# dist_f1 = math.sqrt(math.pow(x_dist_f1,2)+math.pow(z_dist_f1,2))
+			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x,2)+math.pow(f0_v_pos.y-f0_v_pos.y,2)+math.pow(f0_v_pos.z-f0_v_pos.z,2)) 
 
-			# if dist_f0 < dist_f1:
-			# 	self.polygonBorder.append(self.polygons[connectedFaces[0]])
-			# else:
-			# 	self.polygonBorder.append(self.polygons[connectedFaces[1]])
+			self.vertex[self.edges[index_e].vertices[0]].position
 
-		print "polygonBorder: ", len(self.polygonBorder)
+
+
+			if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f0_v_pos, 1):
+				isOutside_f0 = True
+			else: 
+				isOutside_f0 = False
+
+			f0_v_pos_prev = f0_v_pos
+			for index_f1_v in range(0,3):
+				if self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[1]:
+					z_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.z-self.edges[index_e].position.z
+					x_dist_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position.x-self.edges[index_e].position.x
+					f1_v_pos = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position
+					height_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f0_v]].position.y
+
+			if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f1_v_pos, 1):
+				isOutside_f1 = True
+			else: 
+				isOutside_f1 = False
+
+			dist_f1 = math.sqrt(math.pow(x_dist_f1,2)+math.pow(z_dist_f1,2))
+
+			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x,2)+math.pow(f0_v_pos.y-f0_v_pos.y,2)+math.pow(f0_v_pos.z-f0_v_pos.z,2)) 
+
+			
+
+			if dist_f0 < dist_f1 and height_f0 > height_f1:
+				print "first"
+				self.polygonBorder.append(connectedFaces[0])
+			elif dist_f0 < dist_f1:
+				print "dist"
+				self.polygonBorder.append(connectedFaces[0])
+			elif dist_f0 > dist_f1:
+				print "dist"
+				self.polygonBorder.append(connectedFaces[1])
+			elif height_f0 > height_f1:
+				print "height"
+				self.polygonBorder.append(connectedFaces[0])
+			elif isOutside_f0 == False:
+				print "outside"
+				self.polygonBorder.append(connectedFaces[0])
+			else:
+				print "else"
+				self.polygonBorder.append(connectedFaces[1])
+
+			print self.polygonBorder[i]
+
+			i=i+1
+
 		return self.polygonBorder
 
 
