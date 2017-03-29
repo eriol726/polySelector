@@ -515,10 +515,31 @@ class GeometryData:
 
 		self.polygonBorder = []
 
-		print "selected edges", selectedEdges
+		print "centerPolygon", centerPolygon[0]
+
+		vertexBorder = []
+		for index in selectedEdges:
+			vertexBorder.append(self.edges[index].vertices[0])
+			vertexBorder.append(self.edges[index].vertices[1])
+
+		print "unsorted", vertexBorder
+
+		sorted = False  # We haven't started sorting yet
+
+		for i in range(0, len(vertexBorder) - 1):
+			if os.path.exists("c:/break"): break
+			for j in range(0, len(vertexBorder) - 1 - i):
+				if os.path.exists("c:/break"): break
+				if self.less(self.vertex[j].position,self.vertex[j+1].position,self.polygons[centerPolygon[0]].position):
+					vertexBorder[j], vertexBorder[j+1] = vertexBorder[j+1], vertexBorder[j] 
+					
+
+
+			
+
+		print "sorted", vertexBorder
 
 		i = 0
-
 		f0_v_pos_prev = 0
 		for index_e in selectedEdges: 
 			connectedFaces = self.edges[index_e].connectedFaces
@@ -530,19 +551,23 @@ class GeometryData:
 					x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
 					f0_v_pos = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position
 					height_f0 = self.vertex[self.polygons[connectedFaces[0]].vertices[index_f0_v]].position.y
+					notOnLineVtx_f0 = index_f0_v
 
 			dist_f0 = math.sqrt(math.pow(x_dist_f0,2)+math.pow(z_dist_f0,2))
 
 			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x,2)+math.pow(f0_v_pos.y-f0_v_pos.y,2)+math.pow(f0_v_pos.z-f0_v_pos.z,2)) 
 
-			self.vertex[self.edges[index_e].vertices[0]].position
 
-
-
-			if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f0_v_pos, 1):
-				isOutside_f0 = True
-			else: 
-				isOutside_f0 = False
+			if self.less(self.vertex[self.edges[index_e].vertices[0]].position,self.vertex[self.edges[index_e].vertices[1]].position,self.polygons[centerPolygon[0]].position):
+				if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f0_v_pos, 1):
+					isOutside_f0 = True
+				else: 
+					isOutside_f0 = False
+			elif self.less(self.vertex[self.edges[index_e].vertices[1]].position,self.vertex[self.edges[index_e].vertices[0]].position,self.polygons[centerPolygon[0]].position):
+				if self.isOutside( self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, f0_v_pos, 1):
+					isOutside_f0 = True
+				else: 
+					isOutside_f0 = False
 
 			f0_v_pos_prev = f0_v_pos
 			for index_f1_v in range(0,3):
@@ -552,32 +577,39 @@ class GeometryData:
 					f1_v_pos = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f1_v]].position
 					height_f1 = self.vertex[self.polygons[connectedFaces[1]].vertices[index_f0_v]].position.y
 
-			if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f1_v_pos, 1):
-				isOutside_f1 = True
-			else: 
-				isOutside_f1 = False
+			if self.less(self.vertex[self.edges[index_e].vertices[0]].position,self.vertex[self.edges[index_e].vertices[1]].position,self.polygons[centerPolygon[0]].position):
+				if self.isOutside( self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f1_v_pos, 1):
+					isOutside_f1 = True
+				else: 
+					isOutside_f1 = False
+			if self.less(self.vertex[self.edges[index_e].vertices[1]].position,self.vertex[self.edges[index_e].vertices[0]].position,self.polygons[centerPolygon[0]].position):
+				if self.isOutside( self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, f1_v_pos, 1):
+					isOutside_f1 = True
+				else: 
+					isOutside_f1 = False
 
 			dist_f1 = math.sqrt(math.pow(x_dist_f1,2)+math.pow(z_dist_f1,2))
 
 			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x,2)+math.pow(f0_v_pos.y-f0_v_pos.y,2)+math.pow(f0_v_pos.z-f0_v_pos.z,2)) 
 
 			
-
-			if dist_f0 < dist_f1 and height_f0 > height_f1:
-				print "first"
+			if isOutside_f0 == False:
 				self.polygonBorder.append(connectedFaces[0])
-			elif dist_f0 < dist_f1:
-				print "dist"
-				self.polygonBorder.append(connectedFaces[0])
-			elif dist_f0 > dist_f1:
-				print "dist"
-				self.polygonBorder.append(connectedFaces[1])
-			elif height_f0 > height_f1:
-				print "height"
-				self.polygonBorder.append(connectedFaces[0])
-			elif isOutside_f0 == False:
-				print "outside"
-				self.polygonBorder.append(connectedFaces[0])
+			# if dist_f0 < dist_f1 and height_f0 > height_f1:
+			# 	print "first"
+			# 	self.polygonBorder.append(connectedFaces[0])
+			# elif dist_f0 < dist_f1:
+			# 	print "dist"
+			# 	self.polygonBorder.append(connectedFaces[0])
+			# elif dist_f0 > dist_f1:
+			# 	print "dist"
+			# 	self.polygonBorder.append(connectedFaces[1])
+			# elif height_f0 > height_f1:
+			# 	print "height"
+			# 	self.polygonBorder.append(connectedFaces[0])
+			# elif isOutside_f0 == False:
+			# 	print "outside"
+			# 	self.polygonBorder.append(connectedFaces[0])
 			else:
 				print "else"
 				self.polygonBorder.append(connectedFaces[1])
@@ -587,6 +619,32 @@ class GeometryData:
 			i=i+1
 
 		return self.polygonBorder
+
+	def	less(self,a, b,center):
+	
+		if (a.x - center.x >= 0 and b.x - center.x < 0):
+			return True;
+		if (a.x - center.x < 0 and b.x - center.x >= 0):
+			return False
+		if (a.x - center.x == 0 and b.x - center.x == 0): 
+			if (a.z - center.z >= 0 or b.z - center.z >= 0):
+				return a.z > b.z
+			return b.z > a.z
+		
+
+		# compute the cross product of vectors (center -> a) x (center -> b)
+		det = (a.x - center.x) * (b.z - center.z) - (b.x - center.x) * (a.z - center.z)
+		if (det < 0):
+			return True
+		if (det > 0):
+			return False
+
+		# points a and b are on the same line from the center
+		# check which point is closer to the center
+		d1 = (a.x - center.x) * (a.x - center.x) + (a.z - center.z) * (a.z - center.z)
+		d2 = (b.x - center.x) * (b.x - center.x) + (b.z - center.z) * (b.z - center.z)
+		return d1 > d2
+	
 
 
 	def selectPolygonsBorder(self, selectedVertices, cornerIds, centerPolygon):
