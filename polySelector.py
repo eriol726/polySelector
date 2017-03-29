@@ -594,13 +594,16 @@ class GeometryData:
 
 			
 			if isOutside_f0 == False:
+				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
-			# if dist_f0 < dist_f1 and height_f0 > height_f1:
-			# 	print "first"
-			# 	self.polygonBorder.append(connectedFaces[0])
-			# elif dist_f0 < dist_f1:
-			# 	print "dist"
-			# 	self.polygonBorder.append(connectedFaces[0])
+			elif height_f0 > height_f1:
+				print "height"
+				self.polygons[connectedFaces[0]].selected = True
+				self.polygonBorder.append(connectedFaces[0])
+			elif height_f0 < height_f1:
+				print "dist"
+				self.polygons[connectedFaces[1]].selected = True
+				self.polygonBorder.append(connectedFaces[1])
 			# elif dist_f0 > dist_f1:
 			# 	print "dist"
 			# 	self.polygonBorder.append(connectedFaces[1])
@@ -612,11 +615,17 @@ class GeometryData:
 			# 	self.polygonBorder.append(connectedFaces[0])
 			else:
 				print "else"
+				self.polygons[connectedFaces[1]].selected = True
 				self.polygonBorder.append(connectedFaces[1])
 
 			print self.polygonBorder[i]
 
 			i=i+1
+
+		for i in range(0,50):
+			if os.path.exists("c:/break"): break
+			print i
+			connectedFaces = self.growSelection(connectedFaces)
 
 		return self.polygonBorder
 
