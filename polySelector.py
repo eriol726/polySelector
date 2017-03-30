@@ -33,11 +33,11 @@ class polySelector:
 		#set_polyData()
 		
 		poly_ids = []
-		vertexTargets = []
-		vertexTargets, centerPolygon = self.getCornerPolygonIds()
+		selectedEdges = []
+		selectedEdges, centerPolygon = self.getCornerPolygonIds()
 		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(targetIds)
 		#poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
-		poly_ids2 = self.geometryData.selectPolygonsBorder2(vertexTargets, centerPolygon)
+		poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -52,21 +52,21 @@ class polySelector:
 
 		#********************
 
-			# util = om.MScriptUtil()
-			# util.createFromList(poly_ids, len(poly_ids))
-			# ids_ptr = util.asIntPtr()
-			# polyids = om.MIntArray(ids_ptr, len(poly_ids))
+		util = om.MScriptUtil()
+		util.createFromList(selectedEdges, len(selectedEdges))
+		ids_ptr = util.asIntPtr()
+		edgeIds = om.MIntArray(ids_ptr, len(selectedEdges))
 
-			# # Create a singleIndexedComponent of type polygon
-			# mfn_components = om.MFnSingleIndexedComponent()
-			# components = mfn_components.create(om.MFn.kMeshVertComponent)
-			# # Add our MIntArray of ids to the component
-			# mfn_components.addElements(polyids)
+		# Create a singleIndexedComponent of type polygon
+		mfn_components = om.MFnSingleIndexedComponent()
+		components = mfn_components.create(om.MFn.kMeshEdgeComponent)
+		# Add our MIntArray of ids to the component
+		mfn_components.addElements(edgeIds)
 
 		to_sel = om.MSelectionList()
-			# # The object the selection refers to, and the components on that object to select
-			# to_sel.add(mdag, components)
-			# om.MGlobal.setActiveSelectionList(to_sel)
+		# The object the selection refers to, and the components on that object to select
+		to_sel.add(mdag, components)
+		om.MGlobal.setActiveSelectionList(to_sel)
 
 		#********************
 
@@ -513,6 +513,8 @@ class GeometryData:
 
 	def selectPolygonsBorder2(self, selectedEdges, centerPolygon):
 
+
+
 		self.polygonBorder = []
 
 		print "centerPolygon", centerPolygon[0]
@@ -594,16 +596,17 @@ class GeometryData:
 
 			
 			if isOutside_f0 == False:
+				print "first"
 				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
 			elif height_f0 > height_f1:
 				print "height"
 				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
-			elif height_f0 < height_f1:
+			elif dist_f0 < dist_f1 :
 				print "dist"
-				self.polygons[connectedFaces[1]].selected = True
-				self.polygonBorder.append(connectedFaces[1])
+				
+				self.polygonBorder.append(connectedFaces[0])
 			# elif dist_f0 > dist_f1:
 			# 	print "dist"
 			# 	self.polygonBorder.append(connectedFaces[1])
@@ -618,14 +621,20 @@ class GeometryData:
 				self.polygons[connectedFaces[1]].selected = True
 				self.polygonBorder.append(connectedFaces[1])
 
+
 			print self.polygonBorder[i]
 
 			i=i+1
 
-		for i in range(0,50):
+		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
+		print "centerPolygon", centerPolygon[0]
+		for i in range(0,10):
 			if os.path.exists("c:/break"): break
 			print i
 			connectedFaces = self.growSelection(connectedFaces)
+
+		for index in self.polygonBorder:
+			self.polygons[index].selected=False
 
 		return self.polygonBorder
 
