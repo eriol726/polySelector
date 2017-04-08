@@ -34,10 +34,11 @@ class polySelector:
 		
 		poly_ids = []
 		selectedEdges = []
-		selectedEdges, centerPolygon = self.getCornerPolygonIds()
-		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(targetIds)
-		#poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
-		poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
+
+		selectedVertices, centerPolygon = self.getCornerPolygonIds()
+		poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
+		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
+		#poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -102,6 +103,9 @@ class polySelector:
 			print "Select four polygons"
 			return
 
+		targetVertexIds = []
+		targetEdgeIds = []
+		targetPolyIds = []
 
 		# itererar igenom objektets noder, de noder som finns i hypergraphen
 		selListIter = om.MItSelectionList(selList)
@@ -110,7 +114,7 @@ class polySelector:
 
 			components = om.MObject()
 			dagPath = om.MDagPath()
-			selListIter.getDagPath(dagPath, components)
+			selListIter.getDagPath( dagPath, components)
 
 			if components.isNull():   
 				selListIter.next()
@@ -144,19 +148,22 @@ class polySelector:
 
 			selListIter.next()
 
-		# if len(targetIds) > 10:
-		# 	print "too many vertices selected"
-		# 	return
+		if len(targetVertexIds) > 10:
+			print "too many vertices selected"
+			return
+		if len(targetVertexIds) == 0:
+			print "no vertices selected"
+			return
 		if len(targetEdgeIds) == 0:
 			print "no vertices are selected"
 
-		if len(targetPolyIds) == 0:
+		if targetPolyIds is None:
 			print "select one polygon"
 			return
 
 
-		print "targetIds length", targetEdgeIds
-		return targetEdgeIds, targetPolyIds
+		print "targetIds length", targetVertexIds
+		return targetVertexIds, targetPolyIds
 
 	
 
@@ -269,6 +276,11 @@ class GeometryData:
 
 			self.vertex[i].connectedVertices = connectedVertices
 
+			connectedEdges = om.MIntArray()
+			vertexIter.getConnectedEdges(connectedEdges)
+
+			self.vertex[i].connectedEdges = connectedEdges
+
 			self.vertex[i].position = vertexIter.position()
 			self.vertex[i].numberOfNeighbors = len(connectedVertices)
 			i+=1
@@ -332,10 +344,99 @@ class GeometryData:
 			i+=1
 			faceIter.next()
 
+	# http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+	def lineIntersection(self, A, B, C, D): 
+		Bx_Ax = B.x - A.x 
+		By_Ay = B.z - A.z
+		Dx_Cx = D.x - C.x 
+		Dy_Cy = D.z - C.z 
+
+		determinant = (-Dx_Cx * By_Ay + Bx_Ax * Dy_Cy) 
+
+		if abs(determinant) < 1e-20: 
+			return None 
+
+		s = (-By_Ay * (A.x - C.x) + Bx_Ax * (A.z - C.z)) / determinant 
+		t = ( Dx_Cx * (A.z - C.z) - Dy_Cy * (A.x - C.x)) / determinant 
+
+		intersectionPoint = om.MFloatPoint()
+
+		if s >= 0 and s <= 1 and t >= 0 and t <= 1: 
+			intersectionPoint.x = A.x + (t * Bx_Ax)
+			intersectionPoint.y = 0
+			intersectionPoint.z = A.z + (t * By_Ay)
+			return intersectionPoint
+
+		return None
+
 	def surroundBuilding(self,targetIds):
 
 		selectedVertices = []
 
+		connectedEdges = self.vertex[targetIds[0]].connectedEdges
+
+		print "connectedEdges1", connectedEdges
+
+		
+
+		# self.currentMesh = OpenMaya.MFnMeshData().create()
+		# fnMesh = OpenMaya.MFnMesh(self.currentMesh)
+		# inFnMeshData = inMeshDataHandle.asMesh()
+                
+
+		selList = om.MSelectionList()
+		om.MGlobal.getActiveSelectionList(selList)
+		components = om.MObject()
+		MFnMesh = om.MFnMesh()
+		fMesh = om.MObject()
+		mesh = om.MObject()
+		dagPath = om.MDagPath()
+		print "hej"
+		selList.getDagPath(0,dagPath)
+		print "MFnMesh", dagPath
+		meshNode = om.MObject()
+
+		meshNode = dagPath.node()
+
+		fMesh = meshNode
+		#MFnMesh meshFn(fMesh);
+
+		fnMesh = om.MFnMesh(fMesh)
+
+		
+
+		edgeFactors = om.MFloatArray()
+		
+
+
+
+		splitPlacements = om.MIntArray()
+		edgeList = om.MIntArray()
+		internalPoints = om.MFloatPointArray()
+
+		for index in connectedEdges:
+
+			splitPlacements.append(om.MFnMesh.kOnEdge)
+			#splitPlacements.append(om.MFnMesh.kInternalPoint)
+			
+			edgeFactors.append(0.5)
+			
+
+
+			edgeVtx0= self.edges[index].vertices[0]
+			edgeVtx1= self.edges[index].vertices[1]
+			print "edgeVtx0", edgeVtx0
+			intersectionPoint = self.lineIntersection(self.vertex[edgeVtx0].position,self.vertex[edgeVtx1].position,self.vertex[targetIds[0]].position,self.vertex[targetIds[1]].position)
+			if intersectionPoint is not None:
+				edgeList.append(index)
+				print "intersectionPoint", intersectionPoint.x, " ", intersectionPoint.z
+				internalPoints.append(intersectionPoint)
+			else:
+				intersectionPoint = om.MFloatPoint(0.0,0.0,0.0)
+				internalPoints.append(intersectionPoint)
+				print "no intersection"
+			
+		fnMesh.split(splitPlacements, edgeList, edgeFactors, internalPoints)
 
 		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
 						   {'id':targetIds[1], 'x':self.vertex[targetIds[1]].position.x, 'z':self.vertex[targetIds[1]].position.z },
@@ -605,7 +706,7 @@ class GeometryData:
 				self.polygonBorder.append(connectedFaces[0])
 			elif dist_f0 < dist_f1 :
 				print "dist"
-				
+				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
 			# elif dist_f0 > dist_f1:
 			# 	print "dist"
@@ -628,7 +729,7 @@ class GeometryData:
 
 		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
 		print "centerPolygon", centerPolygon[0]
-		for i in range(0,10):
+		for i in range(0,100):
 			if os.path.exists("c:/break"): break
 			print i
 			connectedFaces = self.growSelection(connectedFaces)
@@ -754,6 +855,9 @@ class GeometryData:
 		# 	if os.path.exists("c:/break"): break
 		# 	print i
 		# 	connectedFaces = self.growSelection(connectedFaces)
+
+		for index in self.polygonBorder:
+			self.polygons[index].selected=False
 
 		return self.polygonBorder
 
