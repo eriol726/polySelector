@@ -36,9 +36,10 @@ class polySelector:
 		selectedEdges = []
 
 		selectedVertices, centerPolygon = self.getCornerPolygonIds()
-		poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
-		poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
-		#poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
+		selectedEdges = self.geometryData.slice(selectedVertices)
+		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
+		# poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
+		# #poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -47,11 +48,11 @@ class polySelector:
 		sel.getDagPath(0, mdag)
 
 
-		# Create an MIntArray and populate it with component ids to add to our component object
-		# MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
-		# This is where you would use your list of polyIds that you had gotten
+		# # Create an MIntArray and populate it with component ids to add to our component object
+		# # MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
+		# # This is where you would use your list of polyIds that you had gotten
 
-		#********************
+		# #********************
 
 		util = om.MScriptUtil()
 		util.createFromList(selectedEdges, len(selectedEdges))
@@ -69,22 +70,22 @@ class polySelector:
 		to_sel.add(mdag, components)
 		om.MGlobal.setActiveSelectionList(to_sel)
 
-		#********************
+		# #********************
 
-		util = om.MScriptUtil()
-		util.createFromList(poly_ids2, len(poly_ids2))
-		ids_ptr = util.asIntPtr()
-		polyids = om.MIntArray(ids_ptr, len(poly_ids2))
+		# util = om.MScriptUtil()
+		# util.createFromList(poly_ids2, len(poly_ids2))
+		# ids_ptr = util.asIntPtr()
+		# polyids = om.MIntArray(ids_ptr, len(poly_ids2))
 
-		# Create a singleIndexedComponent of type polygon
-		mfn_components = om.MFnSingleIndexedComponent()
-		components = mfn_components.create(om.MFn.kMeshPolygonComponent)
-		# Add our MIntArray of ids to the component
-		mfn_components.addElements(polyids)
+		# # Create a singleIndexedComponent of type polygon
+		# mfn_components = om.MFnSingleIndexedComponent()
+		# components = mfn_components.create(om.MFn.kMeshPolygonComponent)
+		# # Add our MIntArray of ids to the component
+		# mfn_components.addElements(polyids)
 
-		# The object the selection refers to, and the components on that object to select
-		to_sel.add(mdag, components)
-		om.MGlobal.setActiveSelectionList(to_sel)
+		# # The object the selection refers to, and the components on that object to select
+		# to_sel.add(mdag, components)
+		# om.MGlobal.setActiveSelectionList(to_sel)
 
 		#return getDirectionalFace(faceIndex, om.MVector(0,1,0))
 
@@ -155,7 +156,7 @@ class polySelector:
 			print "no vertices selected"
 			return
 		if len(targetEdgeIds) == 0:
-			print "no vertices are selected"
+			print "no edges are selected"
 
 		if targetPolyIds is None:
 			print "select one polygon"
@@ -369,16 +370,88 @@ class GeometryData:
 
 		return None
 
-	def surroundBuilding(self,targetIds):
+	def slice(self,targetIds):
 
-		selectedVertices = []
+		conectedStartVertecis = self.vertex[targetIds[0]].connectedVertices
+		goalPos = self.vertex[targetIds[1]].position
 
-		connectedEdges = self.vertex[targetIds[0]].connectedEdges
+		startPos = self.vertex[conectedStartVertecis[0]].position
+		distanceToGoal = math.sqrt(math.pow(goalPos.x-startPos.x,2)+math.pow(goalPos.z-startPos.z,2))
+		vertexDict = {conectedStartVertecis[0]:distanceToGoal}
 
-		print "connectedEdges1", connectedEdges
 
-		
+		nextConectedStartVertecis = iter(conectedStartVertecis)
+		for index in nextConectedStartVertecis:
+			print "index", index
+			startPos = self.vertex[index].position
+			distanceToGoal = math.sqrt(math.pow(goalPos.x-startPos.x,2)+math.pow(goalPos.z-startPos.z,2))
+			newElement = {index:distanceToGoal}
+			vertexDict.update(newElement)
 
+		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
+
+		print "vertexDict", vertexDict[0][0]
+
+		startEdges = self.vertex[vertexDict[0][0]].connectedEdges
+
+		for index in startEdges:
+			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
+				startEdge = index
+			if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
+				startEdge = index
+
+		conectedEndVertecis = self.vertex[targetIds[1]].connectedVertices
+
+
+		endPos = self.vertex[conectedEndVertecis[0]].position
+		distanceToStart = math.sqrt(math.pow(goalPos.x-endPos.x,2)+math.pow(goalPos.z-endPos.z,2))
+		vertexDict = {conectedStartVertecis[0]:distanceToStart}
+
+
+		nextConectedStartVertecis = iter(conectedStartVertecis)
+		for index in nextConectedStartVertecis:
+			print "index", index
+			endPos = self.vertex[index].position
+			distanceToStart = math.sqrt(math.pow(goalPos.x-endPos.x,2)+math.pow(goalPos.z-endPos.z,2))
+			newElement = {index:distanceToStart}
+			vertexDict.update(newElement)
+
+		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
+
+		print "vertexDict", vertexDict[0][0]
+
+		endEdges = self.vertex[vertexDict[0][0]].connectedEdges
+
+		for index in endEdges:
+			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
+				endEdge = index
+			if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
+				endEdge = index
+
+
+		print "connectedEdges1", endEdge
+
+		selectedEdges = []
+		# test, remove later
+		selectedEdges.append(startEdge)
+
+		print "negativ z-sträcka"
+		axis = 'z'
+		index = 0
+
+		currentIndex = self.getDirectionalEdges(startEdge, endEdge)
+		print "currentIndex", currentIndex
+		print "endEdges[0]", endEdge
+		while currentIndex != endEdge:
+			if os.path.exists("c:/break"): break
+
+			print "i: ", index
+			selectedEdges.append(currentIndex)
+			index += 1
+			currentIndex = self.getDirectionalEdges(selectedEdges[index],endEdge)
+
+
+		print "edgesInDirection", selectedEdges
 		# self.currentMesh = OpenMaya.MFnMeshData().create()
 		# fnMesh = OpenMaya.MFnMesh(self.currentMesh)
 		# inFnMeshData = inMeshDataHandle.asMesh()
@@ -393,7 +466,7 @@ class GeometryData:
 		dagPath = om.MDagPath()
 		print "hej"
 		selList.getDagPath(0,dagPath)
-		print "MFnMesh", dagPath
+
 		meshNode = om.MObject()
 
 		meshNode = dagPath.node()
@@ -410,34 +483,44 @@ class GeometryData:
 
 
 
-		splitPlacements = om.MIntArray()
-		edgeList = om.MIntArray()
-		internalPoints = om.MFloatPointArray()
+		# splitPlacements = om.MIntArray()
+		# edgeList = om.MIntArray()
+		# internalPoints = om.MFloatPointArray()
 
-		for index in connectedEdges:
+		# for index in edgesInDirection:
 
-			splitPlacements.append(om.MFnMesh.kOnEdge)
-			#splitPlacements.append(om.MFnMesh.kInternalPoint)
+
+
+		# 	edgeVtx0= self.edges[index].vertices[0]
+		# 	edgeVtx1= self.edges[index].vertices[1]
+		# 	print "edgeVtx0", edgeVtx0
+		# 	intersectionPoint = self.lineIntersection(self.vertex[edgeVtx0].position,self.vertex[edgeVtx1].position,self.vertex[targetIds[0]].position,self.vertex[targetIds[1]].position)
+		# 	if intersectionPoint is not None:
+		# 		edgeList.append(index)
+		# 		splitPlacements.append(om.MFnMesh.kOnEdge)
+
 			
-			edgeFactors.append(0.5)
+		# 		edgeFactors.append(0.5)
+		# 		print "intersectionPoint", intersectionPoint.x, " ", intersectionPoint.z
+		# 		#internalPoints.append(intersectionPoint)
+		# 	else:
+		# 		# intersectionPoint = om.MFloatPoint(0.0,0.0,0.0)
+		# 		# internalPoints.append(intersectionPoint)
+		# 		print "no intersection"
+
 			
-
-
-			edgeVtx0= self.edges[index].vertices[0]
-			edgeVtx1= self.edges[index].vertices[1]
-			print "edgeVtx0", edgeVtx0
-			intersectionPoint = self.lineIntersection(self.vertex[edgeVtx0].position,self.vertex[edgeVtx1].position,self.vertex[targetIds[0]].position,self.vertex[targetIds[1]].position)
-			if intersectionPoint is not None:
-				edgeList.append(index)
-				print "intersectionPoint", intersectionPoint.x, " ", intersectionPoint.z
-				internalPoints.append(intersectionPoint)
-			else:
-				intersectionPoint = om.MFloatPoint(0.0,0.0,0.0)
-				internalPoints.append(intersectionPoint)
-				print "no intersection"
 			
-		fnMesh.split(splitPlacements, edgeList, edgeFactors, internalPoints)
+		#fnMesh.split(splitPlacements, edgeList, edgeFactors, internalPoints)
 
+		return selectedEdges
+
+	def surroundBuilding(self,targetIds):
+
+		selectedVertices = []
+
+		
+
+		print "passed"
 		poly_selectedList=[{'id':targetIds[0], 'x':self.vertex[targetIds[0]].position.x, 'z':self.vertex[targetIds[0]].position.z },
 						   {'id':targetIds[1], 'x':self.vertex[targetIds[1]].position.x, 'z':self.vertex[targetIds[1]].position.z },
 						   {'id':targetIds[2], 'x':self.vertex[targetIds[2]].position.x, 'z':self.vertex[targetIds[2]].position.z },
@@ -482,55 +565,110 @@ class GeometryData:
 			
 			
 		
-		print "negativ x-sträcka"
-		selectedVertices.append(secondIndex)
-		axis = 'x'
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
-		while currentIndex != thirdIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == thirdIndex:
-				print "found"
-			selectedVertices.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
+		# print "negativ x-sträcka"
+		# selectedVertices.append(secondIndex)
+		# axis = 'x'
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
+		# while currentIndex != thirdIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == thirdIndex:
+		# 		print "found"
+		# 	selectedVertices.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
 			
 			
 			
 			
 		
-		print "positiv z-sträcka"
-		selectedVertices.append(thirdIndex)
-		axis = 'z'
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
-		while currentIndex != fourthIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == fourthIndex:
-				print "found" 
-			selectedVertices.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
+		# print "positiv z-sträcka"
+		# selectedVertices.append(thirdIndex)
+		# axis = 'z'
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
+		# while currentIndex != fourthIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == fourthIndex:
+		# 		print "found" 
+		# 	selectedVertices.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
 			
 
-		print "positiv x-sträcka"
-		selectedVertices.append(fourthIndex)
+		# print "positiv x-sträcka"
+		# selectedVertices.append(fourthIndex)
 
-		index += 1
-		currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
-		while currentIndex != startIndex:
-			if os.path.exists("c:/break"): break
-			if currentIndex == startIndex:
-				print "found"
-			selectedVertices.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
+		# index += 1
+		# currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
+		# while currentIndex != startIndex:
+		# 	if os.path.exists("c:/break"): break
+		# 	if currentIndex == startIndex:
+		# 		print "found"
+		# 	selectedVertices.append(currentIndex)
+		# 	index += 1
+		# 	currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
 			
-		selectedVertices.append(startIndex)
-		axis = 'x'
-		index += 1
+		# selectedVertices.append(startIndex)
+		# axis = 'x'
+		# index += 1
 
 		return selectedVertices, cornerIds
+
+	def getDirectionalEdges(self, selectedEdge, endIndex):
+		goalPos= self.edges[endIndex].position
+
+		currentPos= self.edges[selectedEdge].position
+		
+
+		CG = goalPos - currentPos
+
+		goalMagnitude = math.sqrt(math.pow(CG.x,2)+math.pow(CG.y,2)+math.pow(CG.z,2))
+
+		goalPosProduct = self.dotProduct(CG,currentPos)
+
+		if goalMagnitude == 0.0:
+			print "goalMagnitude is zero"
+			return endIndex
+
+		selectedEdgeNeighbors = self.edges[selectedEdge].connectedEdges
+
+		closestAngel = 100
+
+		foundCandidate = False
+
+		for i in selectedEdgeNeighbors:
+			neighborPos = self.edges[i].position
+
+			CN = neighborPos - currentPos
+
+			neighborMagnitude = math.sqrt(math.pow(CN.x,2)+math.pow(CN.y,2)+math.pow(CN.z,2))
+
+			if neighborMagnitude == 0:
+				print "neighborMagnitude = 0"
+				foundIndex = i
+				break
+
+			
+			neighborPosProduct = self.dotProduct(CG,CN)
+			neighborAngel = math.acos((neighborPosProduct/(goalMagnitude*neighborMagnitude+0.00001)))
+
+			neighborAngel = neighborAngel*(180/3.1416)
+
+			if neighborAngel < closestAngel and self.edges[i].selected != True:
+
+				foundIndex = i
+				foundCandidate = True
+				closestAngel = neighborAngel
+
+		if foundCandidate == False:
+			foundIndex = selectedEdgeNeighbors[0]
+			print "nextVertex could not be found "
+
+		self.edges[foundIndex].selected = True
+		
+		print "foundIndex, " , foundIndex
+		return foundIndex
 
 	def getDirectionalFace(self, selectedVertex, endIndex):
 
