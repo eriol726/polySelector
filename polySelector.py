@@ -373,27 +373,20 @@ class GeometryData:
 	def slice(self,targetIds):
 
 		conectedStartVertecis = self.vertex[targetIds[0]].connectedVertices
-		goalPos = self.vertex[targetIds[1]].position
+		endPos = self.vertex[targetIds[1]].position
 
-		startPos = self.vertex[conectedStartVertecis[0]].position
-		distanceToGoal = math.sqrt(math.pow(goalPos.x-startPos.x,2)+math.pow(goalPos.z-startPos.z,2))
-		vertexDict = {conectedStartVertecis[0]:distanceToGoal}
+		vertexDict = dict()
 
-
-		nextConectedStartVertecis = iter(conectedStartVertecis)
-		for index in nextConectedStartVertecis:
-			print "index", index
+		# lägger in alla sträckor från grann vertex till end vertex i en dict
+		for index in conectedStartVertecis:
 			startPos = self.vertex[index].position
-			distanceToGoal = math.sqrt(math.pow(goalPos.x-startPos.x,2)+math.pow(goalPos.z-startPos.z,2))
-			newElement = {index:distanceToGoal}
-			vertexDict.update(newElement)
+			distanceToGoal = math.sqrt(math.pow(endPos.x-startPos.x,2)+math.pow(endPos.z-startPos.z,2))
+			vertexDict[index] = distanceToGoal
 
 		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
 
-		print "vertexDict", vertexDict[0][0]
-
 		startEdges = self.vertex[vertexDict[0][0]].connectedEdges
-
+		# hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
 		for index in startEdges:
 			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
 				startEdge = index
@@ -401,35 +394,26 @@ class GeometryData:
 				startEdge = index
 
 		conectedEndVertecis = self.vertex[targetIds[1]].connectedVertices
+		startPos = self.vertex[targetIds[0]].position
 
-
-		endPos = self.vertex[conectedEndVertecis[0]].position
-		distanceToStart = math.sqrt(math.pow(goalPos.x-endPos.x,2)+math.pow(goalPos.z-endPos.z,2))
-		vertexDict = {conectedStartVertecis[0]:distanceToStart}
-
-
-		nextConectedStartVertecis = iter(conectedStartVertecis)
-		for index in nextConectedStartVertecis:
-			print "index", index
+		vertexDict = dict()
+		# lägger in alla sträckor från end vertex till start vertex i en dict
+		for index in conectedEndVertecis:
 			endPos = self.vertex[index].position
-			distanceToStart = math.sqrt(math.pow(goalPos.x-endPos.x,2)+math.pow(goalPos.z-endPos.z,2))
-			newElement = {index:distanceToStart}
-			vertexDict.update(newElement)
+			distanceToStart = math.sqrt(math.pow(startPos.x-endPos.x,2)+math.pow(startPos.z-endPos.z,2))
+			vertexDict[index] = distanceToStart
 
 		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
 
-		print "vertexDict", vertexDict[0][0]
-
 		endEdges = self.vertex[vertexDict[0][0]].connectedEdges
 
+		# hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
 		for index in endEdges:
 			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
 				endEdge = index
 			if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
 				endEdge = index
 
-
-		print "connectedEdges1", endEdge
 
 		selectedEdges = []
 		# test, remove later
@@ -440,8 +424,7 @@ class GeometryData:
 		index = 0
 
 		currentIndex = self.getDirectionalEdges(startEdge, endEdge)
-		print "currentIndex", currentIndex
-		print "endEdges[0]", endEdge
+
 		while currentIndex != endEdge:
 			if os.path.exists("c:/break"): break
 
@@ -450,7 +433,7 @@ class GeometryData:
 			index += 1
 			currentIndex = self.getDirectionalEdges(selectedEdges[index],endEdge)
 
-
+		selectedEdges.append(endEdge)
 		print "edgesInDirection", selectedEdges
 		# self.currentMesh = OpenMaya.MFnMeshData().create()
 		# fnMesh = OpenMaya.MFnMesh(self.currentMesh)
@@ -637,6 +620,8 @@ class GeometryData:
 
 		foundCandidate = False
 
+
+		angleDict = dict()
 		for i in selectedEdgeNeighbors:
 			neighborPos = self.edges[i].position
 
@@ -655,6 +640,7 @@ class GeometryData:
 
 			neighborAngel = neighborAngel*(180/3.1416)
 
+			angleDict[i] = neighborAngel
 			if neighborAngel < closestAngel and self.edges[i].selected != True:
 
 				foundIndex = i
@@ -666,6 +652,8 @@ class GeometryData:
 			print "nextVertex could not be found "
 
 		self.edges[foundIndex].selected = True
+
+		print "angleDict", angleDict
 		
 		print "foundIndex, " , foundIndex
 		return foundIndex
