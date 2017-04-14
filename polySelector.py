@@ -439,21 +439,21 @@ class GeometryData:
 	#intersect the intersection point may be stored in the floats i_x and i_y.
 	def get_line_intersection(self, p0,  p1, p2,  p3):
 
-	    s1_x = p1.x - p0.x
-	    s1_y = p1.z - p0.z
-	    s2_x = p3.x - p2.x 
-	    s2_y = p3.z - p2.z
+		s1_x = p1.x - p0.x
+		s1_y = p1.z - p0.z
+		s2_x = p3.x - p2.x 
+		s2_y = p3.z - p2.z
 
-	    s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y)
-	    t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y)
+		s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.z - p2.z)) / (-s2_x * s1_y + s1_x * s2_y)
+		t = ( s2_x * (p0.z - p2.z) - s2_y * (p0.x - p2.x)) / (-s2_x * s1_y + s1_x * s2_y)
 
-	    if (s >= 0 and s <= 1 and t >= 0 and t <= 1):  
-	        #Collision detected
-            i_x = p0_x + (t * s1_x)
-            i_y = p0_y + (t * s1_y)
-        	return True
+		if (s >= 0 and s <= 1 and t >= 0 and t <= 1):  
+			#Collision detected
+			i_x = p0.x + (t * s1_x)
+			i_y = p0.z + (t * s1_y)
+			return True
 
-	    return False #No collision
+		return False #No collision
 		
 
 
@@ -551,23 +551,24 @@ class GeometryData:
 		# index = 0
 		startPos = self.edges[targetIds[0]].position
 		endPos = self.edges[targetIds[1]].position
-		connectedEdges = self.edges[targetIds[1]].connectedEdges
+		connectedEdges = self.edges[targetIds[0]].connectedEdges
 		
 		intersectionPointList = []
 		currentIndex = 0
 		i=0
 
-		while currentIndex != targetIds[0]:
+		while currentIndex != targetIds[1]:
 			i = i+1
-			if i == 50:
+			if i == 20:
 				break
 			if os.path.exists("c:/break"): break
+			foundIndex = []
 			for index in connectedEdges:
 				edgeVtex0 = self.vertex[self.edges[index].vertices[0]].position
 				edgeVtex1 = self.vertex[self.edges[index].vertices[1]].position
 				#intersectionPoint = self.lineIntersection(edgeVtex0,edgeVtex1,startPos,endPos)
-				intersectionPoint = self.get_line_intersection(edgeVtex0,edgeVtex1,startPos,endPos)
-				#intersectionPoint = self.doIntersect(edgeVtex0,edgeVtex1,startPos,endPos)  
+				#intersectionPoint = self.get_line_intersection(edgeVtex0,edgeVtex1,startPos,endPos)
+				intersectionPoint = self.doIntersect(edgeVtex0,edgeVtex1,startPos,endPos)  
 
 				#print "intersectionPoint", intersectionPoint
 
@@ -577,11 +578,22 @@ class GeometryData:
 					intersectionPointList.append(intersectionPoint)
 					selectedEdges.append(index)
 					currentIndex = index
-					connectedEdges = self.edges[currentIndex].connectedEdges
+					foundIndex.append(index)
+					print "index", index
+					
 				else:
 					print "edge not found"
-			
-			print 'index', index
+
+			connectedEdges = []
+
+			for index in foundIndex:
+				foundNeighbors = self.edges[index].connectedEdges
+				for i in foundNeighbors:
+					connectedEdges.append(i)
+
+
+			print 'len', len(connectedEdges)
+			print 'connectedEdges', connectedEdges
 			
 
 
