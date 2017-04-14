@@ -4,6 +4,7 @@ import math
 import os
 from operator import itemgetter, attrgetter, methodcaller
 
+
 class polySelector:
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -34,6 +35,7 @@ class polySelector:
 		
 		poly_ids = []
 		selectedEdges = []
+		selectedVertices = []
 
 		selectedVertices, centerPolygon = self.getCornerPolygonIds()
 		selectedEdges = self.geometryData.slice(selectedVertices)
@@ -132,6 +134,7 @@ class polySelector:
 				compListFn.getElements(targetVertexIds)
 
 			if compType == om.MFn.kMeshEdgeComponent:
+				print "found edge"
 				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
 				targetEdgeIds = om.MIntArray()
@@ -152,19 +155,21 @@ class polySelector:
 		if len(targetVertexIds) > 10:
 			print "too many vertices selected"
 			return
+
 		if len(targetVertexIds) == 0:
 			print "no vertices selected"
-			return
+	
 		if len(targetEdgeIds) == 0:
 			print "no edges are selected"
 
+		print "targetPolyIds", targetPolyIds[0]
 		if targetPolyIds is None:
 			print "select one polygon"
 			return
 
 
-		print "targetIds length", targetVertexIds
-		return targetVertexIds, targetPolyIds
+		print "targetIds length", targetEdgeIds
+		return targetEdgeIds, targetPolyIds
 
 	
 
@@ -348,97 +353,244 @@ class GeometryData:
 	# http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 	def lineIntersection(self, A, B, C, D): 
 		Bx_Ax = B.x - A.x 
-		By_Ay = B.z - A.z
+		Bz_Az = B.z - A.z
 		Dx_Cx = D.x - C.x 
-		Dy_Cy = D.z - C.z 
+		Dz_Cz = D.z - C.z 
 
-		determinant = (-Dx_Cx * By_Ay + Bx_Ax * Dy_Cy) 
+		determinant = (-Dx_Cx * Bz_Az + Bx_Ax * Dz_Cz) 
 
 		if abs(determinant) < 1e-20: 
 			return None 
 
-		s = (-By_Ay * (A.x - C.x) + Bx_Ax * (A.z - C.z)) / determinant 
-		t = ( Dx_Cx * (A.z - C.z) - Dy_Cy * (A.x - C.x)) / determinant 
+		s = (-Bz_Az * (A.x - C.x) + Bx_Ax * (A.z - C.z)) / determinant 
+		t = ( Dx_Cx * (A.z - C.z) - Dz_Cz * (A.x - C.x)) / determinant 
 
 		intersectionPoint = om.MFloatPoint()
 
 		if s >= 0 and s <= 1 and t >= 0 and t <= 1: 
 			intersectionPoint.x = A.x + (t * Bx_Ax)
 			intersectionPoint.y = 0
-			intersectionPoint.z = A.z + (t * By_Ay)
+			intersectionPoint.z = A.z + (t * Bz_Az)
 			return intersectionPoint
 
 		return None
 
+	#Given three colinear points p, q, r, the function checks if
+	#point q lies on line segment 'pr'
+	def onSegment(self, p,  q,  r):
+		if (q.x <= max(p.x, r.x) and q.x >= min(p.x, r.x) and q.z <= max(p.z, r.z) and q.z >= min(p.z, r.z)):
+			return True
+	 
+		return False
+	
+
+	#To find orientation of ordered triplet (p, q, r).
+	#The function returns following values
+	#0 --> p, q and r are colinear
+	#1 --> Clockwise
+	#2 --> Counterclockwise
+	def orientation(self,p, q, r):
+	
+		# See http://www.geeksforgeeks.org/orientation-3-ordered-points/
+		# for details of below formula.
+		val = (q.z - p.z) * (r.x - q.x) - (q.x - p.x) * (r.z - q.z)
+	 
+		if (val == 0): return 0  # colinear
+
+		return 1 if val > 0 else 2 # clock or counterclock wise
+	
+
+	def doIntersect(self,p1, q1, p2, q2):
+
+		# Find the four orientations needed for general and
+		# special cases
+		o1 = self.orientation(p1, q1, p2)
+		o2 = self.orientation(p1, q1, q2)
+		o3 = self.orientation(p2, q2, p1)
+		o4 = self.orientation(p2, q2, q1)
+	 
+		#General case
+		if (o1 != o2 and o3 != o4):
+			return True
+	 
+		#Special Cases
+		#p1, q1 and p2 are colinear and p2 lies on segment p1q1
+		if (o1 == 0 and self.onSegment(p1, p2, q1)): return True
+	 
+		#p1, q1 and p2 are colinear and q2 lies on segment p1q1
+		if (o2 == 0 and self.onSegment(p1, q2, q1)): return True
+	 
+		#p2, q2 and p1 are colinear and p1 lies on segment p2q2
+		if (o3 == 0 and self.onSegment(p2, p1, q2)): return True
+	 
+		#p2, q2 and q1 are colinear and q1 lies on segment p2q2
+		if (o4 == 0 and self.onSegment(p2, q1, q2)): return True
+	 
+		return False # Doesn't fall in any of the above cases
+
+	def ccw(self,A,B,C):
+		return (C.z-A.z) * (B.x-A.x) > (B.z-A.z) * (C.x-A.x)
+
+	# Return true if line segments AB and CD intersect
+	def intersect(self,A,B,C,D):
+		return self.ccw(A,C,D) != self.ccw(B,C,D) and self.ccw(A,B,C) != self.ccw(A,B,D)
+
+	#Returns 1 if the lines intersect, otherwise 0. In addition, if the lines 
+	#intersect the intersection point may be stored in the floats i_x and i_y.
+	def get_line_intersection(self, p0,  p1, p2,  p3):
+
+	    s1_x = p1.x - p0.x
+	    s1_y = p1.z - p0.z
+	    s2_x = p3.x - p2.x 
+	    s2_y = p3.z - p2.z
+
+	    s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y)
+	    t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y)
+
+	    if (s >= 0 and s <= 1 and t >= 0 and t <= 1):  
+	        #Collision detected
+            i_x = p0_x + (t * s1_x)
+            i_y = p0_y + (t * s1_y)
+        	return True
+
+	    return False #No collision
+		
+
+
+		# X1 = A.x
+		# X2 = B.x
+		# X3 = C.x
+		# X2 = D.x
+
+		# Y1 = A.z
+		# Y2 = B.z
+		# Y3 = C.z
+		# Y2 = D.z
+
+		# if max(X1,X2) < min(X3,X4):
+		# 	return False # There is no mutual abcisses
+
+		# A1 = (Y1-Y2)/(X1-X2) # Pay attention to not dividing by zero
+		# A2 = (Y3-Y4)/(X3-X4) # Pay attention to not dividing by zero
+		# b1 = Y1-A1*X1 = Y2-A1*X2
+		# b2 = Y3-A2*X3 = Y4-A2*X4
+
+		# if (A1 == A2):
+		# 	return False # Parallel segments
+
+		# Ya = A1 * Xa + b1
+		# Ya = A2 * Xa + b2
+		# A1 * Xa + b1 = A2 * Xa + b2
+		# Xa = (b2 - b1) / (A1 - A2) # Once again, pay attention to not dividing by zero
+
+
+		# Ya = A1 * Xa + b1
+		# Ya = A2 * Xa + b2
+		# A1 * Xa + b1 = A2 * Xa + b2
+		# Xa = (b2 - b1) / (A1 - A2)
+
+		# if ( (Xa < max( min(X1,X2), min(X3,X4) )) or (Xa > min( max(X1,X2), max(X3,X4) )) ):
+		# 	return False # intersection is out of bound
+		# else:
+		# 	return True
+
+
 	def slice(self,targetIds):
 
-		conectedStartVertecis = self.vertex[targetIds[0]].connectedVertices
-		endPos = self.vertex[targetIds[1]].position
+		# conectedStartVertecis = self.vertex[targetIds[0]].connectedVertices
+		# endPos = self.vertex[targetIds[1]].position
 
-		vertexDict = dict()
+		# vertexDict = dict()
 
-		# lägger in alla sträckor från grann vertex till end vertex i en dict
-		for index in conectedStartVertecis:
-			startPos = self.vertex[index].position
-			distanceToGoal = math.sqrt(math.pow(endPos.x-startPos.x,2)+math.pow(endPos.z-startPos.z,2))
-			vertexDict[index] = distanceToGoal
+		# # lägger in alla sträckor från grann vertex till end vertex i en dict
+		# for index in conectedStartVertecis:
+		# 	startPos = self.vertex[index].position
+		# 	distanceToGoal = math.sqrt(math.pow(endPos.x-startPos.x,2)+math.pow(endPos.z-startPos.z,2))
+		# 	vertexDict[index] = distanceToGoal
 
-		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
+		# vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
+		# print "vertexDict", vertexDict
 
-		startEdges = self.vertex[vertexDict[0][0]].connectedEdges
-		# hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
-		for index in startEdges:
-			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
-				startEdge = index
-			if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
-				startEdge = index
+		# startEdges = self.vertex[vertexDict[0][0]].connectedEdges
+		# # hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
+		# for index in startEdges:
+		# 	if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
+		# 		startEdge = index
+		# 	if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
+		# 		startEdge = index
 
-		conectedEndVertecis = self.vertex[targetIds[1]].connectedVertices
-		startPos = self.vertex[targetIds[0]].position
+		# conectedEndVertecis = self.vertex[targetIds[1]].connectedVertices
+		# startPos = self.vertex[targetIds[0]].position
 
-		vertexDict = dict()
-		# lägger in alla sträckor från end vertex till start vertex i en dict
-		for index in conectedEndVertecis:
-			endPos = self.vertex[index].position
-			distanceToStart = math.sqrt(math.pow(startPos.x-endPos.x,2)+math.pow(startPos.z-endPos.z,2))
-			vertexDict[index] = distanceToStart
+		# vertexDict = dict()
+		# # lägger in alla sträckor från end vertex till start vertex i en dict
+		# for index in conectedEndVertecis:
+		# 	endPos = self.vertex[index].position
+		# 	distanceToStart = math.sqrt(math.pow(startPos.x-endPos.x,2)+math.pow(startPos.z-endPos.z,2))
+		# 	vertexDict[index] = distanceToStart
 
-		vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
+		# vertexDict= sorted(vertexDict.items(), key=lambda x: x[1])
 
-		endEdges = self.vertex[vertexDict[0][0]].connectedEdges
+		# endEdges = self.vertex[vertexDict[0][0]].connectedEdges
 
-		# hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
-		for index in endEdges:
-			if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
-				endEdge = index
-			if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
-				endEdge = index
+		# # hittar start edge genom att jämföra de närmsta vertex till end och hitta vilket edge de delar 
+		# for index in endEdges:
+		# 	if self.edges[index].vertices[0] == vertexDict[0][0] and self.edges[index].vertices[1] == vertexDict[1][0]:
+		# 		endEdge = index
+		# 	if self.edges[index].vertices[1] == vertexDict[0][0] and self.edges[index].vertices[0] == vertexDict[1][0]:
+		# 		endEdge = index
 
 
 		selectedEdges = []
-		# test, remove later
-		selectedEdges.append(startEdge)
+		# # test, remove later
+		selectedEdges.append(targetIds[0])
+		selectedEdges.append(targetIds[1])
 
-		print "negativ z-sträcka"
-		axis = 'z'
-		index = 0
+		# print "negativ z-sträcka"
+		# axis = 'z'
+		# index = 0
+		startPos = self.edges[targetIds[0]].position
+		endPos = self.edges[targetIds[1]].position
+		connectedEdges = self.edges[targetIds[1]].connectedEdges
+		
+		intersectionPointList = []
+		currentIndex = 0
+		i=0
 
-		currentIndex = self.getDirectionalEdges(startEdge, endEdge)
-
-		while currentIndex != endEdge:
+		while currentIndex != targetIds[0]:
+			i = i+1
+			if i == 50:
+				break
 			if os.path.exists("c:/break"): break
+			for index in connectedEdges:
+				edgeVtex0 = self.vertex[self.edges[index].vertices[0]].position
+				edgeVtex1 = self.vertex[self.edges[index].vertices[1]].position
+				#intersectionPoint = self.lineIntersection(edgeVtex0,edgeVtex1,startPos,endPos)
+				intersectionPoint = self.get_line_intersection(edgeVtex0,edgeVtex1,startPos,endPos)
+				#intersectionPoint = self.doIntersect(edgeVtex0,edgeVtex1,startPos,endPos)  
 
-			print "i: ", index
-			selectedEdges.append(currentIndex)
-			index += 1
-			currentIndex = self.getDirectionalEdges(selectedEdges[index],endEdge)
+				#print "intersectionPoint", intersectionPoint
 
-		selectedEdges.append(endEdge)
+
+				
+				if intersectionPoint is not False and index not in selectedEdges:
+					intersectionPointList.append(intersectionPoint)
+					selectedEdges.append(index)
+					currentIndex = index
+					connectedEdges = self.edges[currentIndex].connectedEdges
+				else:
+					print "edge not found"
+			
+			print 'index', index
+			
+
+
+
 		print "edgesInDirection", selectedEdges
 		# self.currentMesh = OpenMaya.MFnMeshData().create()
 		# fnMesh = OpenMaya.MFnMesh(self.currentMesh)
 		# inFnMeshData = inMeshDataHandle.asMesh()
-                
+				
 
 		selList = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(selList)
