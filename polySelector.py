@@ -4,6 +4,37 @@ import math
 import os
 from operator import itemgetter, attrgetter, methodcaller
 
+#Lägg projektfilerna i: C:\Users\Erik\Documents\maya\2022\scripts
+# Lägg till detta i launch filen
+# "version": "0.2.0",
+# 	"configurations": [
+		
+# 		{
+# 			"name": "Python Attach",
+# 			"type": "python",
+# 			"request": "attach",
+# 			"port": 5678,
+# 			"host": "127.0.0.1",
+# 		}
+# 	]
+
+#maya python, klistra in och kör
+
+# import os
+# import debugpy
+# mayapy_exe = os.path.join(os.environ.get("MAYA_LOCATION"), "bin", "mayapy")
+# debugpy.configure(python=mayapy_exe)
+# debugpy.listen(5678)
+
+#Starta debuggern i vs code
+
+# import polySelector
+# polySelector.run()
+
+# import importlib
+# importlib.reload(polySelector)
+
+# Om något bråkar starta om maya och prova igen
 
 class polySelector:
 
