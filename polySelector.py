@@ -25,7 +25,7 @@ class polySelector:
 				outStr += str(matrix(r,c)) + str(' ')
 			outStr += endStr
 
-		print 'transformation: ',  outStr
+		print(('transformation: ',  outStr))
 
 
 	def select(self):
@@ -99,21 +99,21 @@ class polySelector:
 
 		# om inget polygon är markerat
 		if selList.isEmpty():
-			print "Select four polygons"
+			print("Select four polygons")
 			return
 
 
 		# itererar igenom objektets noder, de noder som finns i hypergraphen
 		selListIter = om.MItSelectionList(selList)
 		while not selListIter.isDone():
-			print "selListIter"
+			print("selListIter")
 
 			components = om.MObject()
 			dagPath = om.MDagPath()
 			selListIter.getDagPath(dagPath, components)
 
 			if components.isNull():   
-				selListIter.next()
+				next(selListIter)
 				continue
 
 			compListFn = om.MFnComponent(components)
@@ -142,20 +142,20 @@ class polySelector:
 				# äntligen får vi ut samtliga id för de markerade polygonen
 				compListFn.getElements(targetPolyIds)
 
-			selListIter.next()
+			next(selListIter)
 
 		# if len(targetIds) > 10:
 		# 	print "too many vertices selected"
 		# 	return
 		if len(targetEdgeIds) == 0:
-			print "no vertices are selected"
+			print("no vertices are selected")
 
 		if len(targetPolyIds) == 0:
-			print "select one polygon"
+			print("select one polygon")
 			return
 
 
-		print "targetIds length", targetEdgeIds
+		print(("targetIds length", targetEdgeIds))
 		return targetEdgeIds, targetPolyIds
 
 	
@@ -186,17 +186,17 @@ class GeometryData:
 			outStr += str(matrix[i]) + str(' ')
 		outStr += ']'
 
-		print 'transformation: ',  outStr
+		print(('transformation: ',  outStr))
 
 	def setPolyData(self):
-		print "´selecting..."
+		print("´selecting...")
 		selList = om.MSelectionList()
 		#lägger till markerade meshar i listan selList
 		om.MGlobal.getActiveSelectionList(selList)
 
-		print "selList length", selList
+		print(("selList length", selList))
 		if selList.isEmpty():
-			print "No polygon is selected"
+			print("No polygon is selected")
 			return
 
 
@@ -210,7 +210,7 @@ class GeometryData:
 		meshName = pathName[(pathName.find("|")+1):len(pathName)]
 
 		if meshName.find("|") != -1:
-			print "found"
+			print("found")
 			meshName = meshName[0:(meshName.find("|"))]
 
 		
@@ -252,9 +252,9 @@ class GeometryData:
 		vertexIter = om.MItMeshVertex(dagPath)
 		faceIter = om.MItMeshPolygon(dagPath)
 
-		self.vertex = [VertexData() for _ in xrange(vertexIter.count())]
+		self.vertex = [VertexData() for _ in range(vertexIter.count())]
 
-		print "vertexIter.count()", vertexIter.count()
+		print(("vertexIter.count()", vertexIter.count()))
 
 		i=0
 		while not vertexIter.isDone():
@@ -272,11 +272,11 @@ class GeometryData:
 			self.vertex[i].position = vertexIter.position()
 			self.vertex[i].numberOfNeighbors = len(connectedVertices)
 			i+=1
-			vertexIter.next()
+			next(vertexIter)
 
 
 		i=0
-		self.edges = [EdgeData() for _ in xrange(edgeIter.count())]
+		self.edges = [EdgeData() for _ in range(edgeIter.count())]
 		while not edgeIter.isDone():
 
 			connectedEdges = om.MIntArray()
@@ -295,10 +295,10 @@ class GeometryData:
 			self.edges[i].position = edgeIter.center()
 			#self.edges[i].numberOfNeighbors = edgeIter.numConnectedEdges()
 			i+=1
-			edgeIter.next()
+			next(edgeIter)
 
 		# #initierar faceIter.count() antal toma polygons till objektet
-		self.polygons = [PolyData() for _ in xrange(faceIter.count())]
+		self.polygons = [PolyData() for _ in range(faceIter.count())]
 
 
 		#print "edgeIter: " + str(edgeIter.index())
@@ -330,7 +330,7 @@ class GeometryData:
 
 
 			i+=1
-			faceIter.next()
+			next(faceIter)
 
 	def surroundBuilding(self,targetIds):
 
@@ -358,38 +358,40 @@ class GeometryData:
 		cornerIds.append(fourthIndex)
 		cornerIds.append(startIndex)
 
-		print "startIndex", startIndex
-		print "secondIndex", secondIndex
-		print "thirdIndex", thirdIndex
-		print "fourthIndex", fourthIndex
+		print(("startIndex", startIndex))
+		print(("secondIndex", secondIndex))
+		print(("thirdIndex", thirdIndex))
+		print(("fourthIndex", fourthIndex))
 
 		#lägger till det först markeade facet
 		selectedVertices.append(startIndex)
 
-		print "negativ z-sträcka"
+		print("negativ z-sträcka")
 		axis = 'z'
 		index = 0
 
 		currentIndex = self.getDirectionalFace(selectedVertices[index],secondIndex)
 		while currentIndex != secondIndex:
+			print("c:/break")
 			if os.path.exists("c:/break"): break
 			if currentIndex == secondIndex:
-				print "found"
+				print("found")
 			selectedVertices.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(selectedVertices[index],secondIndex)
 			
 			
 		
-		print "negativ x-sträcka"
+		print("negativ x-sträcka")
 		selectedVertices.append(secondIndex)
 		axis = 'x'
 		index += 1
 		currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
 		while currentIndex != thirdIndex:
+			print("c:/break")
 			if os.path.exists("c:/break"): break
 			if currentIndex == thirdIndex:
-				print "found"
+				print("found")
 			selectedVertices.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(selectedVertices[index],thirdIndex)
@@ -398,7 +400,7 @@ class GeometryData:
 			
 			
 		
-		print "positiv z-sträcka"
+		print("positiv z-sträcka")
 		selectedVertices.append(thirdIndex)
 		axis = 'z'
 		index += 1
@@ -406,21 +408,22 @@ class GeometryData:
 		while currentIndex != fourthIndex:
 			if os.path.exists("c:/break"): break
 			if currentIndex == fourthIndex:
-				print "found" 
+				print("found") 
 			selectedVertices.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(selectedVertices[index],fourthIndex)
 			
 
-		print "positiv x-sträcka"
+		print("positiv x-sträcka")
 		selectedVertices.append(fourthIndex)
 
 		index += 1
 		currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
 		while currentIndex != startIndex:
+			print("c:/break")
 			if os.path.exists("c:/break"): break
 			if currentIndex == startIndex:
-				print "found"
+				print("found")
 			selectedVertices.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(selectedVertices[index],startIndex)
@@ -467,7 +470,7 @@ class GeometryData:
 			neighborMagnitude = math.sqrt(math.pow(CN.x,2)+math.pow(CN.y,2)+math.pow(CN.z,2))
 
 			if neighborMagnitude == 0:
-				print "neighborMagnitude = 0"
+				print("neighborMagnitude = 0")
 				foundIndex = i
 				break
 
@@ -488,23 +491,23 @@ class GeometryData:
 		#method 2
 		closestDistance = math.sqrt(math.pow(goalPos.x-currentPos.x,2)+math.pow(goalPos.z-currentPos.z,2))
 		if foundCandidate == False:
-			print "method 2"
+			print("method 2")
 			for index in selectedVertexNeighbors:
 				neighborPos = self.vertex[index].position
 				neighborToGoal = math.sqrt(math.pow(goalPos.x-neighborPos.x,2)+math.pow(goalPos.z-neighborPos.z,2))
 
-				print "distance", closestDistance , " " , neighborToGoal, "selcted: ", self.vertex[index].selected
+				print(("distance", closestDistance , " " , neighborToGoal, "selcted: ", self.vertex[index].selected))
 				if neighborToGoal < closestDistance and self.vertex[index].selected == False:
-					print "found"
+					print("found")
 					foundIndex = index
 					foundCandidate = True
 					closestDistance = neighborToGoal
 
 		if foundCandidate == False:
 			foundIndex = selectedVertexNeighbors[0]
-			print "nextVertex could not be found "
+			print("nextVertex could not be found ")
 
-		print "foundIndex", foundIndex
+		print(("foundIndex", foundIndex))
 
 		self.vertex[foundIndex].selected = True
 		
@@ -515,20 +518,22 @@ class GeometryData:
 
 		self.polygonBorder = []
 
-		print "centerPolygon", centerPolygon[0]
+		print(("centerPolygon", centerPolygon[0]))
 
 		vertexBorder = []
 		for index in selectedEdges:
 			vertexBorder.append(self.edges[index].vertices[0])
 			vertexBorder.append(self.edges[index].vertices[1])
 
-		print "unsorted", vertexBorder
+		print(("unsorted", vertexBorder))
 
 		sorted = False  # We haven't started sorting yet
 
 		for i in range(0, len(vertexBorder) - 1):
+			print("c:/break1")
 			if os.path.exists("c:/break"): break
 			for j in range(0, len(vertexBorder) - 1 - i):
+				print("c:/break2")
 				if os.path.exists("c:/break"): break
 				if self.less(self.vertex[j].position,self.vertex[j+1].position,self.polygons[centerPolygon[0]].position):
 					vertexBorder[j], vertexBorder[j+1] = vertexBorder[j+1], vertexBorder[j] 
@@ -537,11 +542,16 @@ class GeometryData:
 
 			
 
-		print "sorted", vertexBorder
+		print(("sorted", vertexBorder))
 
 		i = 0
 		f0_v_pos_prev = 0
+		connectedFaces = []
 		for index_e in selectedEdges: 
+
+			if self.edges[index_e].connectedFaces and len(self.edges[index_e].connectedFaces) < 2:
+				print("break")
+				break
 			connectedFaces = self.edges[index_e].connectedFaces
 			
 
@@ -597,11 +607,11 @@ class GeometryData:
 				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
 			elif height_f0 > height_f1:
-				print "height"
+				print("height")
 				self.polygons[connectedFaces[0]].selected = True
 				self.polygonBorder.append(connectedFaces[0])
 			elif height_f0 < height_f1:
-				print "dist"
+				print("dist")
 				self.polygons[connectedFaces[1]].selected = True
 				self.polygonBorder.append(connectedFaces[1])
 			# elif dist_f0 > dist_f1:
@@ -614,25 +624,25 @@ class GeometryData:
 			# 	print "outside"
 			# 	self.polygonBorder.append(connectedFaces[0])
 			else:
-				print "else"
+				print("else")
 				self.polygons[connectedFaces[1]].selected = True
 				self.polygonBorder.append(connectedFaces[1])
 
-			print self.polygonBorder[i]
+			print((self.polygonBorder[i]))
 
 			i=i+1
 
 		for i in range(0,50):
 			if os.path.exists("c:/break"): break
-			print i
-			connectedFaces = self.growSelection(connectedFaces)
+			print("len(connectedFaces)", connectedFaces)
+			if(len(connectedFaces)):
+				connectedFaces = self.growSelection(connectedFaces)
 
 		return self.polygonBorder
 
 	def	less(self,a, b,center):
-	
 		if (a.x - center.x >= 0 and b.x - center.x < 0):
-			return True;
+			return True
 		if (a.x - center.x < 0 and b.x - center.x >= 0):
 			return False
 		if (a.x - center.x == 0 and b.x - center.x == 0): 
@@ -661,11 +671,11 @@ class GeometryData:
 		self.polygonBorder = []
 		cornerLength = 5
 		i=0
-		print "first", self.vertex[cornerIds[0]].position.x, " ", self.vertex[cornerIds[0]].position.z
-		print "second", self.vertex[cornerIds[1]].position.x, " ", self.vertex[cornerIds[1]].position.z
-		print "third", self.vertex[cornerIds[2]].position.x, " ", self.vertex[cornerIds[2]].position.z
-		print "fourth", self.vertex[cornerIds[3]].position.x, " ", self.vertex[cornerIds[3]].position.z
-		print "end", self.vertex[cornerIds[4]].position.x, " ", self.vertex[cornerIds[4]].position.z
+		print(("first", self.vertex[cornerIds[0]].position.x, " ", self.vertex[cornerIds[0]].position.z))
+		print(("second", self.vertex[cornerIds[1]].position.x, " ", self.vertex[cornerIds[1]].position.z))
+		print(("third", self.vertex[cornerIds[2]].position.x, " ", self.vertex[cornerIds[2]].position.z))
+		print(("fourth", self.vertex[cornerIds[3]].position.x, " ", self.vertex[cornerIds[3]].position.z))
+		print(("end", self.vertex[cornerIds[4]].position.x, " ", self.vertex[cornerIds[4]].position.z))
 
 		
 
@@ -695,7 +705,7 @@ class GeometryData:
 				endCornerPos.z=endCornerPos.z+margin
 				sign = 1
 
-			print "cornerId",cornerId
+			print(("cornerId",cornerId))
 
 			
 
@@ -706,6 +716,7 @@ class GeometryData:
 				connectedPolygons = self.vertex[currentVertex].connectedFaces
 
 				for connectedPoly in connectedPolygons:
+					print("c:/break")
 					if os.path.exists("c:/break"): break
 					
 
@@ -753,14 +764,13 @@ class GeometryData:
 
 
 		for index in connectedFaces:
-			
-
 			if self.polygons[index].selected == False:
-				connectedVertices3.append(self.polygons[index].connectedFaces[0])
-				connectedVertices3.append(self.polygons[index].connectedFaces[1])
-				connectedVertices3.append(self.polygons[index].connectedFaces[2])
-				self.polygons[index].selected = True
-				self.polygonBorder.append(index)
+				if len(self.polygons[index].connectedFaces) > 2:
+					connectedVertices3.append(self.polygons[index].connectedFaces[0])
+					connectedVertices3.append(self.polygons[index].connectedFaces[1])
+					connectedVertices3.append(self.polygons[index].connectedFaces[2])
+					self.polygons[index].selected = True
+					self.polygonBorder.append(index)
 
 		return	connectedVertices3
 
