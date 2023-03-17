@@ -69,10 +69,10 @@ class polySelector:
 		selectedVertices, centerPolygon = self.getCornerPolygonIds()
 
 		print("selectedVertices: ", selectedVertices)
-		selectedEdges = self.geometryData.slice(selectedVertices)
+		# selectedEdges = self.geometryData.slice(selectedVertices)
 		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
 		# poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
-		# #poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
+		poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedVertices, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -80,11 +80,11 @@ class polySelector:
 		mdag = om.MDagPath()
 		sel.getDagPath(0, mdag)
 
-		# # Create an MIntArray and populate it with component ids to add to our component object
-		# # MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
-		# # This is where you would use your list of polyIds that you had gotten
+		# Create an MIntArray and populate it with component ids to add to our component object
+		# MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
+		# This is where you would use your list of polyIds that you had gotten
 
-		# #********************
+		#********************
 
 		util = om.MScriptUtil()
 		util.createFromList(selectedEdges, len(selectedEdges))
@@ -102,22 +102,22 @@ class polySelector:
 		to_sel.add(mdag, components)
 		om.MGlobal.setActiveSelectionList(to_sel)
 
-		# #********************
+		# ********************
 
-		# util = om.MScriptUtil()
-		# util.createFromList(poly_ids2, len(poly_ids2))
-		# ids_ptr = util.asIntPtr()
-		# polyids = om.MIntArray(ids_ptr, len(poly_ids2))
+		util = om.MScriptUtil()
+		util.createFromList(poly_ids2, len(poly_ids2))
+		ids_ptr = util.asIntPtr()
+		polyids = om.MIntArray(ids_ptr, len(poly_ids2))
 
-		# # Create a singleIndexedComponent of type polygon
-		# mfn_components = om.MFnSingleIndexedComponent()
-		# components = mfn_components.create(om.MFn.kMeshPolygonComponent)
-		# # Add our MIntArray of ids to the component
-		# mfn_components.addElements(polyids)
+		# Create a singleIndexedComponent of type polygon
+		mfn_components = om.MFnSingleIndexedComponent()
+		components = mfn_components.create(om.MFn.kMeshPolygonComponent)
+		# Add our MIntArray of ids to the component
+		mfn_components.addElements(polyids)
 
-		# # The object the selection refers to, and the components on that object to select
-		# to_sel.add(mdag, components)
-		# om.MGlobal.setActiveSelectionList(to_sel)
+		# The object the selection refers to, and the components on that object to select
+		to_sel.add(mdag, components)
+		om.MGlobal.setActiveSelectionList(to_sel)
 
 		# return getDirectionalFace(faceIndex, om.MVector(0,1,0))
 
