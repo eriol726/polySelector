@@ -924,6 +924,8 @@ class GeometryData:
 		i = 0
 		f0_v_pos_prev = 0
 		for index_e in selectedEdges:
+			if self.edges[index_e].connectedFaces and len(self.edges[index_e].connectedFaces) < 2:
+				break
 			connectedFaces = self.edges[index_e].connectedFaces
 
 			for index_f0_v in range(0, 3):
@@ -1014,11 +1016,12 @@ class GeometryData:
 
 		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
 		print("centerPolygon", centerPolygon[0])
-		for i in range(0, 100):
+		for i in range(0, 50):
 			if os.path.exists("c:/break"):
 				break
 			print(i)
-			connectedFaces = self.growSelection(connectedFaces)
+			if(len(connectedFaces)):
+				connectedFaces = self.growSelection(connectedFaces)
 
 		for index in self.polygonBorder:
 			self.polygons[index].selected = False
@@ -1144,16 +1147,16 @@ class GeometryData:
 		connectedVertices3 = []
 
 		for index in connectedFaces:
-
-			if self.polygons[index].selected == False:
-				connectedVertices3.append(
-					self.polygons[index].connectedFaces[0])
-				connectedVertices3.append(
-					self.polygons[index].connectedFaces[1])
-				connectedVertices3.append(
-					self.polygons[index].connectedFaces[2])
-				self.polygons[index].selected = True
-				self.polygonBorder.append(index)
+			if len(self.polygons[index].connectedFaces) > 2:
+				if self.polygons[index].selected == False:
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[0])
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[1])
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[2])
+					self.polygons[index].selected = True
+					self.polygonBorder.append(index)
 
 		return connectedVertices3
 
