@@ -66,13 +66,13 @@ class polySelector:
 		selectedEdges = []
 		selectedVertices = []
 
-		selectedVertices, centerPolygon = self.getCornerPolygonIds()
+		selectedEdges, centerPolygon = self.getSelectedComponents()
 
 		print("selectedVertices: ", selectedVertices)
-		# selectedEdges = self.geometryData.slice(selectedVertices)
-		#poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
+		#selectedEdges = self.geometryData.slice(selectedVertices)
+		# poly_ids, cornerVertex = self.geometryData.surroundBuilding(selectedVertices)
 		# poly_ids2 = self.geometryData.selectPolygonsBorder(poly_ids,cornerVertex, centerPolygon)
-		poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedVertices, centerPolygon)
+		poly_ids2 = self.geometryData.selectPolygonsBorder2(selectedEdges, centerPolygon)
 
 		sel = om.MSelectionList()
 		om.MGlobal.getActiveSelectionList(sel)
@@ -84,23 +84,25 @@ class polySelector:
 		# MIntArray takes an array of ints. That has to be passed using an MScriptUtil pointer
 		# This is where you would use your list of polyIds that you had gotten
 
+		to_sel = om.MSelectionList()
+
+
 		#********************
 
-		util = om.MScriptUtil()
-		util.createFromList(selectedEdges, len(selectedEdges))
-		ids_ptr = util.asIntPtr()
-		edgeIds = om.MIntArray(ids_ptr, len(selectedEdges))
+		# util = om.MScriptUtil()
+		# util.createFromList(selectedEdges, len(selectedEdges))
+		# ids_ptr = util.asIntPtr()
+		# edgeIds = om.MIntArray(ids_ptr, len(selectedEdges))
 
-		# Create a singleIndexedComponent of type polygon
-		mfn_components = om.MFnSingleIndexedComponent()
-		components = mfn_components.create(om.MFn.kMeshEdgeComponent)
-		# Add our MIntArray of ids to the component
-		mfn_components.addElements(edgeIds)
+		# # Create a singleIndexedComponent of type polygon
+		# mfn_components = om.MFnSingleIndexedComponent()
+		# components = mfn_components.create(om.MFn.kMeshEdgeComponent)
+		# # Add our MIntArray of ids to the component
+		# mfn_components.addElements(edgeIds)
 
-		to_sel = om.MSelectionList()
-		# The object the selection refers to, and the components on that object to select
-		to_sel.add(mdag, components)
-		om.MGlobal.setActiveSelectionList(to_sel)
+		# # The object the selection refers to, and the components on that object to select
+		# to_sel.add(mdag, components)
+		# om.MGlobal.setActiveSelectionList(to_sel)
 
 		# ********************
 
@@ -121,7 +123,7 @@ class polySelector:
 
 		# return getDirectionalFace(faceIndex, om.MVector(0,1,0))
 
-	def getCornerPolygonIds(self):
+	def getSelectedComponents(self):
 		targetGeom = []
 
 		selList = om.MSelectionList()
@@ -140,7 +142,7 @@ class polySelector:
 		# itererar igenom objektets noder, de noder som finns i hypergraphen
 		selListIter = om.MItSelectionList(selList)
 		while not selListIter.isDone():
-			print("selListIter")
+			print("selListIter ")
 
 			components = om.MObject()
 			dagPath = om.MDagPath()
@@ -188,7 +190,6 @@ class polySelector:
 		if len(targetEdgeIds) == 0:
 			print("no edges are selected")
 
-		print("targetPolyIds", targetPolyIds[0])
 		if targetPolyIds is None:
 			print("select one polygon")
 			return
@@ -233,7 +234,6 @@ class GeometryData:
 		# lägger till markerade meshar i listan selList
 		om.MGlobal.getActiveSelectionList(selList)
 
-		print("selList length", selList)
 		if selList.isEmpty():
 			print("No polygon is selected")
 			return
@@ -321,8 +321,14 @@ class GeometryData:
 			self.edges[i].connectedEdges = connectedEdges
 
 			connectedFaces = om.MIntArray()
+
+			# Returns the indices of the faces connected to the current edge.
+			# Normally a boundary edge will only have one face connected to it and
+			# an internal edge will have two, but if the mesh has manifold geometry
+			# then the edge may have three or more faces connected to it.
 			edgeIter.getConnectedFaces(connectedFaces)
 
+			# if connectedFaces is an array of just one face id the mesh is corrupt
 			self.edges[i].connectedFaces = connectedFaces
 
 			self.edges[i].vertices.append(edgeIter.index(0))
@@ -462,10 +468,8 @@ class GeometryData:
 		s2_x = p3.x - p2.x
 		s2_y = p3.z - p2.z
 
-		s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.z - p2.z)) / \
-			(-s2_x * s1_y + s1_x * s2_y)
-		t = (s2_x * (p0.z - p2.z) - s2_y * (p0.x - p2.x)) / \
-			(-s2_x * s1_y + s1_x * s2_y)
+		s = (-s1_y * (p0.x - p2.x) + s1_x * (p0.z - p2.z)) / (-s2_x * s1_y + s1_x * s2_y)
+		t = (s2_x * (p0.z - p2.z) - s2_y * (p0.x - p2.x)) / (-s2_x * s1_y + s1_x * s2_y)
 
 		if (s >= 0 and s <= 1 and t >= 0 and t <= 1):
 			# Collision detected
@@ -705,10 +709,12 @@ class GeometryData:
 		currentIndex = self.getDirectionalFace(
 			selectedVertices[index], secondIndex)
 		while currentIndex != secondIndex:
-			if os.path.exists("c:/break"):
+			if index > 200:
+				print("too many attempts")
 				break
 			if currentIndex == secondIndex:
-				print("found")
+				print("currentIndex == secondIndex")
+
 			selectedVertices.append(currentIndex)
 			index += 1
 			currentIndex = self.getDirectionalFace(
@@ -879,10 +885,10 @@ class GeometryData:
 
 				print("distance", closestDistance, " ", neighborToGoal, "selcted: ", self.vertex[index].selected)
 				if neighborToGoal < closestDistance and self.vertex[index].selected == False:
-					print("found",
-					foundIndex = index,
-					foundCandidate = True,
-					closestDistance = neighborToGoal)
+					print("foundCandidate")
+					foundIndex = index
+					foundCandidate = True
+					closestDistance = neighborToGoal
 
 		if foundCandidate == False:
 			foundIndex = selectedVertexNeighbors[0]
@@ -916,8 +922,7 @@ class GeometryData:
 				if os.path.exists("c:/break"):
 					break
 				if self.less(self.vertex[j].position, self.vertex[j+1].position, self.polygons[centerPolygon[0]].position):
-					vertexBorder[j], vertexBorder[j +
-												  1] = vertexBorder[j+1], vertexBorder[j]
+					vertexBorder[j], vertexBorder[j + 1] = vertexBorder[j+1], vertexBorder[j]
 
 		print("sorted", vertexBorder)
 
@@ -925,7 +930,8 @@ class GeometryData:
 		f0_v_pos_prev = 0
 		for index_e in selectedEdges:
 			if self.edges[index_e].connectedFaces and len(self.edges[index_e].connectedFaces) < 2:
-				break
+				print("only one connected face, corrupt mesh or border face")
+				continue 
 			connectedFaces = self.edges[index_e].connectedFaces
 
 			for index_f0_v in range(0, 3):
@@ -1016,10 +1022,9 @@ class GeometryData:
 
 		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
 		print("centerPolygon", centerPolygon[0])
-		for i in range(0, 50):
+		for i in range(0, 170):
 			if os.path.exists("c:/break"):
 				break
-			print(i)
 			if(len(connectedFaces)):
 				connectedFaces = self.growSelection(connectedFaces)
 
@@ -1147,6 +1152,7 @@ class GeometryData:
 		connectedVertices3 = []
 
 		for index in connectedFaces:
+			# The end/border of the mesh does not feces with 3 connected faces
 			if len(self.polygons[index].connectedFaces) > 2:
 				if self.polygons[index].selected == False:
 					connectedVertices3.append(
