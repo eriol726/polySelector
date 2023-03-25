@@ -47,6 +47,9 @@ https://vimeo.com/811567462
 <img src=images/extracted_component_2.png style="width: 95%">
 
 ## Dubgging
+Follow this instructions: 
+https://www.aleksandarkocic.com/2020/12/25/debugging-in-maya-with-debugpy-and-vscode/
+
 Copy the python script file to: `C:\Users\myUser\Documents\maya\2022\scripts`
 
 Create a new python launch.json file i VS code:
@@ -75,15 +78,21 @@ debugpy.configure(python=mayapy_exe)
 debugpy.listen(5678)
 ```
 
+(If you need to restat maya run the script again. When maya is closed down the client connection will be lost) 
+
 Start the debugger in VS code. And place a brakepoint.
 To run the polyselector script. In the python terminal. Copy, pase and execute:
 
 ```
 import polySelector
 polySelector.run()
+```
 
+If the brekpoints stops working in next execution, run:
+```
 import importlib
 importlib.reload(polySelector)
+polySelector.run()
 ```
 
 If the debugger dose not stops att the brakepoint, try to restart maya and execute the scripts again.
