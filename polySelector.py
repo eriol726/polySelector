@@ -84,7 +84,7 @@ class polySelector:
 		# Iterate through the nodes in the objects hypergraph
 		selListIter = om.MItSelectionList(selList)
 		while not selListIter.isDone():
-			print("selListIter ")
+			print("Get selected component ids")
 
 			components = om.MObject()
 			dagPath = om.MDagPath()
@@ -491,7 +491,6 @@ class GeometryData:
 		meshName = pathName[(pathName.find("|")+1):len(pathName)]
 
 		if meshName.find("|") != -1:
-			print("found")
 			meshName = meshName[0:(meshName.find("|"))]
 
 		# Transform the mesh here, if needed
