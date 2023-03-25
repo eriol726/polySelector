@@ -23,23 +23,28 @@ But you're in luck. Meshlab has a fantastic tool to simplify and reconstruct you
 
 * Select extract in edit Mesh and now your part is separated from the mesh
 
+## Video of the workflow:
+https://vimeo.com/811567462
+
+## Images:
+
 ### Non-manifold mesh:
-![alt text](images/corrupt_mesh.png)
+<img src=images/corrupt_mesh.png style="width: 95%">
 
 ### Shortest edge path issue:
-![alt text](images/closest_path_issue.png)
+<img src=images/closest_path_issue.png style="width: 95%">
 
 ### Multi-Cut tool in reconstructed mesh:
-![alt text](images/multicut_tool.png)
+<img src=images/multicut_tool.png style="width: 95%">
 
 ### Selected vertecies border:
-![alt text](images/selected_verticies.png)
+<img src=images/selected_verticies.png style="width: 95%">
 
 ### Selected polygons of the building:
 <img src=images/selected_polys_2.png style="width: 95%">
 
 ### Extracted building ✂🏠✅:
-![alt text](images/extracted_component_2.png)
+<img src=images/extracted_component_2.png style="width: 95%">
 
 ## Dubgging
 Copy the python script file to: `C:\Users\myUser\Documents\maya\2022\scripts`
