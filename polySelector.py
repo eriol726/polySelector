@@ -2,60 +2,13 @@ import maya.OpenMaya as om
 import maya.cmds as cmds
 import math
 import os
-from operator import itemgetter, attrgetter, methodcaller
-
-#Lägg projektfilerna i: C:\Users\Erik\Documents\maya\2022\scripts
-# Lägg till detta i launch filen
-# "version": "0.2.0",
-# 	"configurations": [
-		
-# 		{
-# 			"name": "Python Attach",
-# 			"type": "python",
-# 			"request": "attach",
-# 			"port": 5678,
-# 			"host": "127.0.0.1",
-# 		}
-# 	]
-
-#maya python, klistra in och kör
-
-# import os
-# import debugpy
-# mayapy_exe = os.path.join(os.environ.get("MAYA_LOCATION"), "bin", "mayapy")
-# debugpy.configure(python=mayapy_exe)
-# debugpy.listen(5678)
-
-#Starta debuggern i vs code
-
-# import polySelector
-# polySelector.run()
-
-# import importlib
-# importlib.reload(polySelector)
-
-# Om något bråkar starta om maya och prova igen
 
 class polySelector:
 
-	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
 		self.targetIds = 0
 		self.geometryData = GeometryData()
 		self.geometryData.setPolyData()
-		print('init')
-
-	def printMMatrix(matrix):
-		endStr = '\n'
-		outStr = ''
-		outStr += endStr
-
-		for r in range(0, 4):
-			for c in range(0, 4):
-				outStr += str(matrix(r, c)) + str(' ')
-			outStr += endStr
-
-		print('transformation: ',  outStr)
 
 	def select(self):
 		selectedEdges = []
@@ -79,7 +32,7 @@ class polySelector:
 
 		to_sel = om.MSelectionList()
 
-
+		# Only for selecting sliced edges
 		#********************
 
 		# util = om.MScriptUtil()
@@ -117,10 +70,9 @@ class polySelector:
 	def getSelectedComponents(self):
 
 		selList = om.MSelectionList()
-		# lägger till markerade meshar i listan selList
+		# Add selected meshes from maya to selList
 		om.MGlobal.getActiveSelectionList(selList)
 
-		# om inget polygon är markerat
 		if selList.isEmpty():
 			print("Select four polygons")
 			return
@@ -129,7 +81,7 @@ class polySelector:
 		targetEdgeIds = []
 		targetPolyIds = []
 
-		# itererar igenom objektets noder, de noder som finns i hypergraphen
+		# Iterate through the nodes in the objects hypergraph
 		selListIter = om.MItSelectionList(selList)
 		while not selListIter.isDone():
 			print("selListIter ")
@@ -149,23 +101,17 @@ class polySelector:
 				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
 				targetVertexIds = om.MIntArray()
-				# äntligen får vi ut samtliga id för de markerade polygonen
+				# Now the id's from the selected vertices are added to targetVertexIds
 				compListFn.getElements(targetVertexIds)
 
 			if compType == om.MFn.kMeshEdgeComponent:
-				print("found edge")
-				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
 				targetEdgeIds = om.MIntArray()
-				# äntligen får vi ut samtliga id för de markerade polygonen
 				compListFn.getElements(targetEdgeIds)
 
-			# kontrollerar om det finns ett polygon i komponenterna
 			if compType == om.MFn.kMeshPolygonComponent:
-				# allows compListFn to query single indexed components
 				compListFn = om.MFnSingleIndexedComponent(components)
 				targetPolyIds = om.MIntArray()
-				# äntligen får vi ut samtliga id för de markerade polygonen
 				compListFn.getElements(targetPolyIds)
 
 			selListIter.next()
@@ -191,7 +137,6 @@ class polySelector:
 
 class GeometryData:
 
-	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
 
 		self.polygons = []
@@ -217,8 +162,9 @@ class GeometryData:
 
 	def setPolyData(self):
 		print("selecting...")
+		
 		selList = om.MSelectionList()
-		# lägger till markerade meshar i listan selList
+		# Add selected meshes from maya to selList
 		om.MGlobal.getActiveSelectionList(selList)
 
 		if selList.isEmpty():
@@ -228,24 +174,6 @@ class GeometryData:
 		components = om.MObject()
 		dagPath = om.MDagPath()
 		selList.getDagPath(0, dagPath, components)
-
-		# hämtar namnet på huvudnoden
-		pathName = dagPath.fullPathName()
-
-		meshName = pathName[(pathName.find("|")+1):len(pathName)]
-
-		if meshName.find("|") != -1:
-			print("found")
-			meshName = meshName[0:(meshName.find("|"))]
-
-		# transformations matris, skala, rotation och translatering
-		meshMatrix = cmds.xform(meshName, q=True, ws=True, matrix=True)
-		# plockar ut andra kolumnen med 3 componenter, kommer motsvara en vektor som pekar i Y-riktning eftersom vi drar nytta av skalningen som 'alltid' är positiv
-		# vi kunde lika gärna gjort en egen vektor (0,1,0) istället för (0,y-skalning,0)
-
-
-		transMatrix = om.MMatrix()
-		om.MScriptUtil.createMatrixFromList(meshMatrix, transMatrix)
 
 		connectedFaces = om.MIntArray()
 
@@ -308,14 +236,12 @@ class GeometryData:
 			i += 1
 			edgeIter.next()
 
-		# #initierar faceIter.count() antal toma polygons till objektet
+		# Init size of array, as much faces the mesh has 
 		self.polygons = [PolyData() for _ in range(faceIter.count())]
 
-		# print("edgeIter:(" + str(edgeIter.index()))
-		# här loopar vi igenom alla faces i meshen
+		# Loop through all faces in the mesh 
 		i = 0
 		while not faceIter.isDone():
-			#cfLength = edgeIter.getConnectedFaces(connectedFaces)
 			self.polygons[i].normalAngel = 5.0
 
 			self.polygons[i].position = faceIter.center()
@@ -324,7 +250,7 @@ class GeometryData:
 			faceIter.getNormal(normal)
 			self.polygons[i].normal = normal
 
-			# hittar de tre anslutande polygonen
+			# Gets connected faces
 			faceArray = om.MIntArray()
 			faceIter.getConnectedFaces(faceArray)
 
@@ -333,26 +259,29 @@ class GeometryData:
 
 			self.polygons[i].vertices = vertexArray
 
-			# lägger till de tre anslutande polygonen i faceNeighbors listan
+			# Add connected faces
 			self.polygons[i].connectedFaces = faceArray
 
 			i += 1
 			faceIter.next()
-
-	# Given three colinear points p, q, r, the function checks if
-	# point q lies on line segment 'pr'
+	
 	def onSegment(self, p,  q,  r):
+		"""Given three colinear points p, q, r, the function checks if
+			point q lies on line segment 'pr'
+		"""
+
 		if (q.x <= max(p.x, r.x) and q.x >= min(p.x, r.x) and q.z <= max(p.z, r.z) and q.z >= min(p.z, r.z)):
 			return True
 
 		return False
 
-	# To find orientation of ordered triplet (p, q, r).
-	# The function returns following values
-	# 0 --> p, q and r are colinear
-	# 1 --> Clockwise
-	# 2 --> Counterclockwise
 	def orientation(self, p, q, r):
+		""" To find orientation of ordered triplet (p, q, r).
+			The function returns following values
+			0 --> p, q and r are colinear
+			1 --> Clockwise
+			2 --> Counterclockwise
+		"""
 
 		# See http://www.geeksforgeeks.org/orientation-3-ordered-points/
 		# for details of below formula.
@@ -398,20 +327,185 @@ class GeometryData:
 	def ccw(self, A, B, C):
 		return (C.z-A.z) * (B.x-A.x) > (B.z-A.z) * (C.x-A.x)
 
-	# Return true if line segments AB and CD intersect
 	def intersect(self, A, B, C, D):
+		""" Return true if line segments AB and CD intersect """
+
 		return self.ccw(A, C, D) != self.ccw(B, C, D) and self.ccw(A, B, C) != self.ccw(A, B, D)
 
+	def selectPolygonsBorder(self, selectedEdges, centerPolygon):
+
+		self.polygonBorder = []
+
+		vertexBorder = []
+		for index in selectedEdges:
+			vertexBorder.append(self.edges[index].vertices[0])
+			vertexBorder.append(self.edges[index].vertices[1])
+
+		for i in range(0, len(vertexBorder) - 1):
+			if os.path.exists("c:/break"):
+				break
+			for j in range(0, len(vertexBorder) - 1 - i):
+				if os.path.exists("c:/break"):
+					break
+				if self.less(self.vertex[j].position, self.vertex[j+1].position, self.polygons[centerPolygon[0]].position):
+					vertexBorder[j], vertexBorder[j + 1] = vertexBorder[j+1], vertexBorder[j]
+
+		i = 0
+		for index_e in selectedEdges:
+			if self.edges[index_e].connectedFaces and len(self.edges[index_e].connectedFaces) < 2:
+				print("only one connected face, corrupt mesh or border face")
+				continue 
+			connectedFaces = self.edges[index_e].connectedFaces
+
+			for index_f0_v in range(0, 3):
+				if self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[1]:
+					z_dist_f0 = self.vertex[self.polygons[connectedFaces[0]
+														  ].vertices[index_f0_v]].position.z-self.edges[index_e].position.z
+					x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]
+														  ].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
+					f0_v_pos = self.vertex[self.polygons[connectedFaces[0]
+														 ].vertices[index_f0_v]].position
+					height_f0 = self.vertex[self.polygons[connectedFaces[0]
+														  ].vertices[index_f0_v]].position.y
+
+
+			dist_f0 = math.sqrt(math.pow(x_dist_f0, 2)+math.pow(z_dist_f0, 2))
+
+			if self.less(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, self.polygons[centerPolygon[0]].position):
+				if self.isOutside(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f0_v_pos, 1):
+					isOutside_f0 = True
+				else:
+					isOutside_f0 = False
+			elif self.less(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, self.polygons[centerPolygon[0]].position):
+				if self.isOutside(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, f0_v_pos, 1):
+					isOutside_f0 = True
+				else:
+					isOutside_f0 = False
+
+			for index_f1_v in range(0, 3):
+				if self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[1]:
+					z_dist_f1 = self.vertex[self.polygons[connectedFaces[1]
+														  ].vertices[index_f1_v]].position.z-self.edges[index_e].position.z
+					x_dist_f1 = self.vertex[self.polygons[connectedFaces[1]
+														  ].vertices[index_f1_v]].position.x-self.edges[index_e].position.x
+					f1_v_pos = self.vertex[self.polygons[connectedFaces[1]
+														 ].vertices[index_f1_v]].position
+					height_f1 = self.vertex[self.polygons[connectedFaces[1]
+														  ].vertices[index_f0_v]].position.y
+
+			dist_f1 = math.sqrt(math.pow(x_dist_f1, 2)+math.pow(z_dist_f1, 2))
+
+			if isOutside_f0 == False:
+				self.polygons[connectedFaces[0]].selected = True
+				self.polygonBorder.append(connectedFaces[0])
+			elif height_f0 > height_f1:
+				self.polygons[connectedFaces[0]].selected = True
+				self.polygonBorder.append(connectedFaces[0])
+			elif dist_f0 < dist_f1:
+				self.polygons[connectedFaces[0]].selected = True
+				self.polygonBorder.append(connectedFaces[0])
+			else:
+				self.polygons[connectedFaces[1]].selected = True
+				self.polygonBorder.append(connectedFaces[1])
+
+			i = i+1
+
+		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
+		print("centerPolygon", centerPolygon[0])
+
+		for i in range(0, 170):
+			# Stop the program with this script if the loop is infinity
+			if os.path.exists("c:/break"):
+				break
+			if(len(connectedFaces)):
+				connectedFaces = self.growSelection(connectedFaces)
+
+		for index in self.polygonBorder:
+			self.polygons[index].selected = False
+
+		return self.polygonBorder
+
+	def less(self, a, b, center):
+
+		if (a.x - center.x >= 0 and b.x - center.x < 0):
+			return True
+		if (a.x - center.x < 0 and b.x - center.x >= 0):
+			return False
+		if (a.x - center.x == 0 and b.x - center.x == 0):
+			if (a.z - center.z >= 0 or b.z - center.z >= 0):
+				return a.z > b.z
+			return b.z > a.z
+
+		# compute the cross product of vectors (center -> a) x (center -> b)
+		det = (a.x - center.x) * (b.z - center.z) - \
+			(b.x - center.x) * (a.z - center.z)
+		if (det < 0):
+			return True
+		if (det > 0):
+			return False
+
+		# points a and b are on the same line from the center
+		# check which point is closer to the center
+		d1 = (a.x - center.x) * (a.x - center.x) + \
+			(a.z - center.z) * (a.z - center.z)
+		d2 = (b.x - center.x) * (b.x - center.x) + \
+			(b.z - center.z) * (b.z - center.z)
+		return d1 > d2
+
+	def growSelection(self, connectedFaces):
+		connectedVertices3 = []
+
+		for index in connectedFaces:
+			# The end/border of the mesh does not feces with 3 connected faces
+			if len(self.polygons[index].connectedFaces) > 2:
+				if self.polygons[index].selected == False:
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[0])
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[1])
+					connectedVertices3.append(
+						self.polygons[index].connectedFaces[2])
+					self.polygons[index].selected = True
+					self.polygonBorder.append(index)
+
+		return connectedVertices3
+
+	# if the sign/value is positive it returns true, the point is outside the building
+	def isOutside(self, pointA, pointB, pointC, sign):
+		if sign == 1:
+			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) > 0
+		elif sign == -1:
+			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
+
+	def dotProduct2D(self, poit1, point2):
+
+		return poit1.x*point2.x+poit1.z*point2.z
+
+	def dotProduct(self, poit1, point2):
+
+		return poit1.x*point2.x+poit1.y*point2.y+poit1.z*point2.z
+	
+	def transformMesh(dagPath):
+		# Get the name of the main node for transformation
+		pathName = dagPath.fullPathName()
+		meshName = pathName[(pathName.find("|")+1):len(pathName)]
+
+		if meshName.find("|") != -1:
+			print("found")
+			meshName = meshName[0:(meshName.find("|"))]
+
+		# Transform the mesh here, if needed
+		meshMatrix = cmds.xform(meshName, q=True, ws=True, matrix=True)
+		transMatrix = om.MMatrix()
+		om.MScriptUtil.createMatrixFromList(meshMatrix, transMatrix)
+	
 	def slice(self, targetIds):
 
 		selectedEdges = []
-		# # test, remove later
+		# test, remove later
 		selectedEdges.append(targetIds[0])
 		selectedEdges.append(targetIds[1])
 
-		# print("negativ z-sträcka")
-		# axis = 'z'
-		# index = 0
 		startPos = self.edges[targetIds[0]].position
 		endPos = self.edges[targetIds[1]].position
 		connectedEdges = self.edges[targetIds[0]].connectedEdges
@@ -420,7 +514,7 @@ class GeometryData:
 		currentIndex = 0
 		i = 0
 
-		#infinite loop :(
+		# infinite loop :(
 		while currentIndex != targetIds[1]:
 			i = i+1
 			if i > 20:
@@ -503,190 +597,8 @@ class GeometryData:
 
 		return selectedEdges
 
-	def selectPolygonsBorder(self, selectedEdges, centerPolygon):
-
-		self.polygonBorder = []
-
-		print("centerPolygon", centerPolygon[0])
-
-		vertexBorder = []
-		for index in selectedEdges:
-			vertexBorder.append(self.edges[index].vertices[0])
-			vertexBorder.append(self.edges[index].vertices[1])
-
-		print("unsorted", vertexBorder)
-
-		sorted = False  # We haven't started sorting yet
-
-		for i in range(0, len(vertexBorder) - 1):
-			if os.path.exists("c:/break"):
-				break
-			for j in range(0, len(vertexBorder) - 1 - i):
-				if os.path.exists("c:/break"):
-					break
-				if self.less(self.vertex[j].position, self.vertex[j+1].position, self.polygons[centerPolygon[0]].position):
-					vertexBorder[j], vertexBorder[j + 1] = vertexBorder[j+1], vertexBorder[j]
-
-		print("sorted", vertexBorder)
-
-		i = 0
-		f0_v_pos_prev = 0
-		for index_e in selectedEdges:
-			if self.edges[index_e].connectedFaces and len(self.edges[index_e].connectedFaces) < 2:
-				print("only one connected face, corrupt mesh or border face")
-				continue 
-			connectedFaces = self.edges[index_e].connectedFaces
-
-			for index_f0_v in range(0, 3):
-				if self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[0]].vertices[index_f0_v] != self.edges[index_e].vertices[1]:
-					z_dist_f0 = self.vertex[self.polygons[connectedFaces[0]
-														  ].vertices[index_f0_v]].position.z-self.edges[index_e].position.z
-					x_dist_f0 = self.vertex[self.polygons[connectedFaces[0]
-														  ].vertices[index_f0_v]].position.x-self.edges[index_e].position.x
-					f0_v_pos = self.vertex[self.polygons[connectedFaces[0]
-														 ].vertices[index_f0_v]].position
-					height_f0 = self.vertex[self.polygons[connectedFaces[0]
-														  ].vertices[index_f0_v]].position.y
-					notOnLineVtx_f0 = index_f0_v
-
-			dist_f0 = math.sqrt(math.pow(x_dist_f0, 2)+math.pow(z_dist_f0, 2))
-
-			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x, 2)+math.pow(
-				f0_v_pos.y-f0_v_pos.y, 2)+math.pow(f0_v_pos.z-f0_v_pos.z, 2))
-
-			if self.less(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, self.polygons[centerPolygon[0]].position):
-				if self.isOutside(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f0_v_pos, 1):
-					isOutside_f0 = True
-				else:
-					isOutside_f0 = False
-			elif self.less(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, self.polygons[centerPolygon[0]].position):
-				if self.isOutside(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, f0_v_pos, 1):
-					isOutside_f0 = True
-				else:
-					isOutside_f0 = False
-
-			f0_v_pos_prev = f0_v_pos
-			for index_f1_v in range(0, 3):
-				if self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[0] and self.polygons[connectedFaces[1]].vertices[index_f1_v] != self.edges[index_e].vertices[1]:
-					z_dist_f1 = self.vertex[self.polygons[connectedFaces[1]
-														  ].vertices[index_f1_v]].position.z-self.edges[index_e].position.z
-					x_dist_f1 = self.vertex[self.polygons[connectedFaces[1]
-														  ].vertices[index_f1_v]].position.x-self.edges[index_e].position.x
-					f1_v_pos = self.vertex[self.polygons[connectedFaces[1]
-														 ].vertices[index_f1_v]].position
-					height_f1 = self.vertex[self.polygons[connectedFaces[1]
-														  ].vertices[index_f0_v]].position.y
-
-			if self.less(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, self.polygons[centerPolygon[0]].position):
-				if self.isOutside(self.vertex[self.edges[index_e].vertices[0]].position, self.vertex[self.edges[index_e].vertices[1]].position, f1_v_pos, 1):
-					isOutside_f1 = True
-				else:
-					isOutside_f1 = False
-			if self.less(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, self.polygons[centerPolygon[0]].position):
-				if self.isOutside(self.vertex[self.edges[index_e].vertices[1]].position, self.vertex[self.edges[index_e].vertices[0]].position, f1_v_pos, 1):
-					isOutside_f1 = True
-				else:
-					isOutside_f1 = False
-
-			dist_f1 = math.sqrt(math.pow(x_dist_f1, 2)+math.pow(z_dist_f1, 2))
-
-			prevVertexDist_f0 = math.sqrt(math.pow(f0_v_pos.x-f0_v_pos.x, 2)+math.pow(
-				f0_v_pos.y-f0_v_pos.y, 2)+math.pow(f0_v_pos.z-f0_v_pos.z, 2))
-
-			if isOutside_f0 == False:
-				self.polygons[connectedFaces[0]].selected = True
-				self.polygonBorder.append(connectedFaces[0])
-			elif height_f0 > height_f1:
-				self.polygons[connectedFaces[0]].selected = True
-				self.polygonBorder.append(connectedFaces[0])
-			elif dist_f0 < dist_f1:
-				self.polygons[connectedFaces[0]].selected = True
-				self.polygonBorder.append(connectedFaces[0])
-			else:
-				self.polygons[connectedFaces[1]].selected = True
-				self.polygonBorder.append(connectedFaces[1])
-
-			print(self.polygonBorder[i])
-
-			i = i+1
-
-		connectedFaces = self.polygons[centerPolygon[0]].connectedFaces
-		print("centerPolygon", centerPolygon[0])
-		for i in range(0, 170):
-			if os.path.exists("c:/break"):
-				break
-			if(len(connectedFaces)):
-				connectedFaces = self.growSelection(connectedFaces)
-
-		for index in self.polygonBorder:
-			self.polygons[index].selected = False
-
-		return self.polygonBorder
-
-	def less(self, a, b, center):
-
-		if (a.x - center.x >= 0 and b.x - center.x < 0):
-			return True
-		if (a.x - center.x < 0 and b.x - center.x >= 0):
-			return False
-		if (a.x - center.x == 0 and b.x - center.x == 0):
-			if (a.z - center.z >= 0 or b.z - center.z >= 0):
-				return a.z > b.z
-			return b.z > a.z
-
-		# compute the cross product of vectors (center -> a) x (center -> b)
-		det = (a.x - center.x) * (b.z - center.z) - \
-			(b.x - center.x) * (a.z - center.z)
-		if (det < 0):
-			return True
-		if (det > 0):
-			return False
-
-		# points a and b are on the same line from the center
-		# check which point is closer to the center
-		d1 = (a.x - center.x) * (a.x - center.x) + \
-			(a.z - center.z) * (a.z - center.z)
-		d2 = (b.x - center.x) * (b.x - center.x) + \
-			(b.z - center.z) * (b.z - center.z)
-		return d1 > d2
-
-	def growSelection(self, connectedFaces):
-		connectedVertices3 = []
-
-		for index in connectedFaces:
-			# The end/border of the mesh does not feces with 3 connected faces
-			if len(self.polygons[index].connectedFaces) > 2:
-				if self.polygons[index].selected == False:
-					connectedVertices3.append(
-						self.polygons[index].connectedFaces[0])
-					connectedVertices3.append(
-						self.polygons[index].connectedFaces[1])
-					connectedVertices3.append(
-						self.polygons[index].connectedFaces[2])
-					self.polygons[index].selected = True
-					self.polygonBorder.append(index)
-
-		return connectedVertices3
-
-	# if the sign/value is positive it returns true, the point is outside the building
-	def isOutside(self, pointA, pointB, pointC, sign):
-		if sign == 1:
-			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) > 0
-		elif sign == -1:
-			return ((pointB.x - pointA.x)*(pointC.z - pointA.z) - (pointB.z - pointA.z)*(pointC.x - pointA.x)) < 0
-
-	def dotProduct2D(self, poit1, point2):
-
-		return poit1.x*point2.x+poit1.z*point2.z
-
-	def dotProduct(self, poit1, point2):
-
-		return poit1.x*point2.x+poit1.y*point2.y+poit1.z*point2.z
-
-
 class VertexData:
 
-	# ----------------------------------------------------------------------------------------------------------------------
 	def __init__(self):
 		self.selected = False
 		self.connectedEdges = []
@@ -705,7 +617,6 @@ class EdgeData:
 		self.connectedFaces = []
 		self.position = om.MPoint(0, 0, 0)
 		self.numberOfNeighbors = 0
-
 
 class PolyData:
 	def __init__(self):
