@@ -7,7 +7,7 @@ But you're in luck. Meshlab has a fantastic tool to simplify and reconstruct you
 
 ## Instructions:
 
-* First of all, start by importing the scanned mesh into Meshlab, select filters, Reconstruction, simplification and reconstruction. Select Surface Reconstruction: Ball Pivoting. Increase the world unit by clicking the up arrow on time (225.09) and Apply. (the process will not destroy the mesh's uv coordinates).
+* First of all, start by importing the scanned mesh into Meshlab, select filters, Reconstruction, Simplification and Reconstruction. Select Surface Reconstruction: Ball Pivoting. Increase the world unit by clicking the up arrow on time (225.09) and Apply. (the process will not destroy the mesh's uv coordinates).
 
 * Export your reconstructed mesh and import it into Maya.
 
@@ -17,13 +17,13 @@ But you're in luck. Meshlab has a fantastic tool to simplify and reconstruct you
 
 * Click Multi-component so you can also select a center polygon, select a polygon in the center of your area.
 
-* Read the python script, type run() in the terminal and click execute.
+* Read the python script, type `run()` in the terminal and click execute.
 
 * Now all polygons are marked in the area
 
 * Select extract in edit Mesh and now your part is separated from the mesh
 
-### Non-manifold meshe:
+### Non-manifold mesh:
 ![alt text](images/corrupt_mesh.png)
 
 ### Shortest edge path issue:
@@ -40,4 +40,46 @@ But you're in luck. Meshlab has a fantastic tool to simplify and reconstruct you
 
 ### Extracted building ✂🏠✅:
 ![alt text](images/extracted_component_2.png)
+
+## Dubgging
+Copy the python script file to: `C:\Users\myUser\Documents\maya\2022\scripts`
+
+Create a new python launch.json file i VS code:
+```
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Attach",
+      "type": "python",
+      "request": "attach",
+      "port": 5678,
+      "host": "127.0.0.1",
+    }
+  ]
+}
+```
+
+Open the script editor in Maya. Open a new python terminal. Copy, pase and execute:
+
+```
+import os
+import debugpy
+mayapy_exe = os.path.join(os.environ.get("MAYA_LOCATION"), "bin", "mayapy")
+debugpy.configure(python=mayapy_exe)
+debugpy.listen(5678)
+```
+
+Start the debugger in VS code. And place a brakepoint.
+To run the polyselector script. In the python terminal. Copy, pase and execute:
+
+```
+import polySelector
+polySelector.run()
+
+import importlib
+importlib.reload(polySelector)
+```
+
+If the debugger dose not stops att the brakepoint, try to restart maya and execute the scripts again.
 
